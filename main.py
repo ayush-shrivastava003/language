@@ -1,11 +1,12 @@
 import sys
 
 # declare token types
-EOF, INT, SPACE, ASSIGN, PLUS, MINUS, NEWLINE, STRING, FLOAT = "EOF", "INT", "SPACE", "EQUAL", "PLUS", "MINUS", "NEWLINE", "STRING", "FLOAT"
+EOF, INT, SPACE, ASSIGN, PLUS, MINUS, NEWLINE, STRING, FLOAT, VAR = "EOF", "INT", "SPACE", "EQUAL", "PLUS", "MINUS", "NEWLINE", "STRING", "FLOAT", "VAR"
+
 errorCodes = {
   0: "Syntax Error",
   1: "Unkown Variable Error",
-  2: "Internal Error"
+  2: "Unkown Type Error"
 }
 
 class Token():
@@ -38,6 +39,7 @@ class Interpreter():
     self.currentToken = Token("START", "START") # arbitrary Token, just need it to be an instance of the class
     self.char = self.content[self.index]
     self.vars = {}
+    self.keywords = []
 
   def raiseError(self, code, reason):
     """
@@ -47,15 +49,22 @@ class Interpreter():
     exit()
 
   def increment(self):
-      """
-      Moves the pointer to next character.
-      """
-      self.index += 1
-      
-      if self.index < len(self.content):
-        self.char = self.content[self.index]
-      else:
-        self.char = None
+    """
+    Moves the pointer to next character.
+    """
+    self.index += 1
+    
+    if self.index < len(self.content):
+      self.char = self.content[self.index]
+    else:
+      self.char = None
+
+  def skipSpace(self):
+    """
+    Moves the pointer to skip whitespace. 
+    """
+    while self.char != None and self.char == " ":
+      self.increment()
 
   def getWord(self):
     """
@@ -69,8 +78,26 @@ class Interpreter():
 
     while self.char != " " and self.char != None and self.char != "\n":
       final += self.char
-      self.increment() # TODO: MAKE THIS CODE BLOCK INTO ITS OWN METHOD
+      self.increment()
     return final
+
+  def isFloat(self, num):
+    split = num.split(".")
+    
+    if len(split) > 2:
+      self.raiseError(0, "Received multiple decimals in an expected floating point number")
+
+    elif len(split) == 1:
+      return False
+
+    for piece in split:
+      if piece == "":
+        self.raiseError(0, "Expected value after decimal point")
+      
+      elif not piece.isdigit():
+        self.raiseError("Unexpected character in float")
+
+    return True
 
   def getNum(self):
     """
@@ -78,21 +105,15 @@ class Interpreter():
     Then it checks if the number is an integer or a floating point number.
     """
     final = self.getWord()
-    split = final.split('.')
 
-    if len(split) > 2:
-      self.raiseError(0, "Received multiple decimals in an expected floating point number")
-    elif len(split) == 1:
+    if self.isFloat(final):
+      return final, FLOAT
+
+    else:
+      if not final.isdigit():
+        self.raiseError(0, f"Invalid integer '{final}'")
+
       return int(final), INT
-
-    for num in split:
-      if num == '':
-        self.raiseError(0, "Expected value after decimal point")
-
-      elif not num.isdigit():
-        self.raiseError(0, "Unexpected character in float")
-
-    return final, FLOAT
 
   def getString(self):
     """
@@ -108,7 +129,17 @@ class Interpreter():
       final += self.char
       self.increment()
 
-    return final
+    return f'"{final}"'
+
+  def getType(self, word):
+    if word.startswith('"'):
+      self.increment()
+      return self.getString(self)
+    
+    elif word[0].isdigit():
+      if self.isFloat(word):
+        return FLOAT
+      return INT
 
   def nextToken(self):
     """
@@ -128,14 +159,11 @@ class Interpreter():
         break
 
       elif self.char == " ":
-        self.increment()
+        self.skipSpace()
 
       if self.char.isdigit():
         num, type = self.getNum()
         return Token(type, num)
-
-      elif self.char == "=":
-        return Token(ASSIGN, "=")
 
       elif self.char == "\n":
         return Token(NEWLINE, "\n")
@@ -150,19 +178,38 @@ class Interpreter():
         self.increment() # move pointer to start of string rather than the quote
         return Token(STRING, self.getString())
 
+      elif self.char.lower() in 'abcdefghijklmnopqrstuvwxyz':
+        word = self.getWord()
+        self.skipSpace()
+
+        if self.char == "=":
+          self.increment()
+          self.skipSpace()
+          lit = self.getWord()
+
+          if lit.startswith('"'):
+            self.vars[word] = lit
+            return Token(VAR, Token(STRING, lit))
+    
+          elif lit[0].isdigit():
+            type = self.getType(lit)
+            self.vars[word] = lit
+            return Token(VAR, Token(type, lit))
+
+          elif lit in self.vars.keys():
+            self.vars[word] = self.vars[lit]
+            return Token(VAR, Token(self.getType(lit), self.vars[lit]))
+
+          else:
+            self.raiseError(2, f"Unkown type '{lit}' attempted to be assigned to '{word}'")
+        
+        else:
+          self.raiseError(1, f"Unknown variable '{word}'")
+
 
       self.raiseError(0, f"Unexpected character '{self.char}'")
   
     return Token(EOF, None)
-
-  # def verify(self, type):
-  #   """
-  #   Verify that the token at the current position is of the expected type.
-  #   """
-  #   if self.currentToken.type == type:
-  #     self.currentToken = self.nextToken() # since the type matches, we can move the pointer to the next self.character
-  #   else:
-  #     self.raiseError(1, f"Expected type {type} at position {self.index}, got {self.currentToken.type}")
 
   def run(self):
     """
@@ -170,12 +217,10 @@ class Interpreter():
     """
     while self.running and self.currentToken.type != EOF:
       self.currentToken = self.nextToken()
-      print(self.currentToken.toString())
   
 
 with open(sys.argv[1]) as file:
   content = file.read()
 
-print(content)
 i = Interpreter(content)
 i.run()
