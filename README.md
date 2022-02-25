@@ -1,3 +1,8 @@
 # language
-A simple programming language interpreted in Python. Inspired by https://github.com/tsj845/Custom-Language-Interpreter
+A simple interpreter built in Python (started with a calculator, expanding soon)
+
+Inspired by:
+
+https://github.com/tsj845/Custom-Language-Interpreter
+
 https://ruslanspivak.com/lsbasi-part1/
