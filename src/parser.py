@@ -1,6 +1,6 @@
 # from types import *
 from lexer import *
-from syntax_tree import BinaryOperator, Number
+from syntax_tree import *
 
 class Parser():
     def __init__(self):
@@ -28,7 +28,7 @@ class Parser():
         if self.token_index < len(self.tokens): 
             self.current_token = self.tokens[self.token_index]
         else:
-            return None
+            self.current_token = Token(None, None)
 
     def eat_token(self, expected_token):
         """
@@ -53,9 +53,19 @@ class Parser():
 
         elif token.type == PAROPEN:
             self.eat_token(PAROPEN)
-            final = self.parse()
+            final = self.get_expression()
             self.eat_token(PARCLOSE)
             return final
+
+        elif token.type == PLUS:
+            self.eat_token(PLUS)
+            factor = self.get_factor()
+            return UnaryOperator(operator=token, child=factor)
+
+        elif token.type == MINUS:
+            self.eat_token(MINUS)
+            factor = self.get_factor()
+            return UnaryOperator(operator=token, child=factor)
 
 
     def get_term(self):
@@ -89,10 +99,11 @@ class Parser():
 
             final = BinaryOperator(current_token, final, self.get_factor())
 
-        print("final from term", final)
+        if final == None:
+            raise SyntaxError(f"Unexpected end of expression")
         return final
 
-    def parse(self):
+    def get_expression(self):
         """
 
         parses the token stream using the following method:
@@ -131,24 +142,32 @@ class Parser():
         351
         ```
         """
+        final = self.get_term()
+
+        while self.current_token.type in (PLUS, MINUS):
+            current_token = self.current_token
+
+            if current_token.type == PLUS:
+                self.eat_token(PLUS)
+            # final += self.get_term()
+
+            elif current_token.type == MINUS:
+                self.eat_token(MINUS)
+            # final -= self.get_term()
+        
+            final = BinaryOperator(operator=current_token, left=final, right=self.get_term())
+
+        return final
+
+    def parse(self):
         try:
-            final = self.get_term()
+            tree = self.get_expression()
+            # self.next_token()
 
-            while self.current_token.type in (PLUS, MINUS):
-                current_token = self.current_token
-
-                if current_token.type == PLUS:
-                    self.eat_token(PLUS)
-                # final += self.get_term()
-
-                elif current_token.type == MINUS:
-                    self.eat_token(MINUS)
-                # final -= self.get_term()
+            if self.current_token.type != None:
+                raise SyntaxError(f"Expected end of expression, found '{self.current_token.value}' instead")
             
-                final = BinaryOperator(operator=current_token, left=final, right=self.get_term())
-
-            print("final from parse", final)
-            return final
+            return tree
 
         except Exception as e:
             print(f"\x1b[31m{e}\x1b[0m")
@@ -165,6 +184,3 @@ class Parser():
 
         if self.tokens == []:
             return
-        
-        print(self.tokens)
-        # return self.parse()

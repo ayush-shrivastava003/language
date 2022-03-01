@@ -28,6 +28,14 @@ class BinaryOperator(AbstractSyntaxTree):
     def __repr__(self):
         return f"BinaryOperator(\noperator: {self.operator},\nleft: {self.left},\nright: {self.right}\n)"
 
+class UnaryOperator(AbstractSyntaxTree):
+    def __init__(self, operator, child):
+        self.operator = operator
+        self.child = child # token that the unary operator is modifying
+
+    def __repr__(self):
+        return f"UnaryOperator(operator: {self.operator}, child: {self.child}\n)"
+
 class Number(AbstractSyntaxTree):
     def __init__(self, token):
         self.token = token

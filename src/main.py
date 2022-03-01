@@ -51,10 +51,17 @@ class Interpreter():
       elif op_type == DIVIDE:
         return self.walk_tree(node.left) / self.walk_tree(node.right)
 
+    elif type(node) == UnaryOperator:
+      if node.operator.type == PLUS:
+        return +(self.walk_tree(node.child))
+
+      elif node.operator.type == MINUS:
+        return -(self.walk_tree(node.child))
+
   def run(self, content):
     self.parser.setup(content)
     tree = self.parser.parse()
-    print("tree", tree)
+    print(tree)
     return self.walk_tree(tree)
 
   def run_shell(self):
