@@ -43,25 +43,21 @@ class Interpreter():
       if op_type == PLUS:
         left = self.walk_tree(node.left)
         right = self.walk_tree(node.right)
-        print(f"{left} + {right}")
         return left + right
       
       elif op_type == MINUS:
         left = self.walk_tree(node.left)
         right = self.walk_tree(node.right)
-        print(f"{left} - {right}")
         return left - right
       
       elif op_type == MULTIPLY:
         left = self.walk_tree(node.left)
         right = self.walk_tree(node.right)
-        print(f"{left} * {right}")
         return left * right
       
       elif op_type == DIVIDE:
         left = self.walk_tree(node.left)
         right = self.walk_tree(node.right)
-        print(f"{left} / {right}")
         return left / right
 
     elif type(node) == UnaryOperator:

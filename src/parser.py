@@ -157,12 +157,13 @@ class Parser():
                     self.token_index -= 1
                     self.current_token = self.tokens[self.token_index]
                     tree_nodes.append(self.get_expression())
-                    self.eat_token(EOF)
             else:
                 tree_nodes.append(self.get_expression())
 
                 if self.current_token.type in (NUM, None):
                     self.next_token()
+
+            self.eat_token(SEPR)
 
         program = Program([node for node in tree_nodes])
         return program
@@ -181,7 +182,7 @@ class Parser():
         self.tokens = []
         self.token_index = -1
         self.current_token = None
-        self.lexer.content = r"{}".format(content)
+        self.lexer.content = content
         print(self.lexer.content)
         self.lexer.index = -1
         # self.lexer.char = content[self.lexer.index]

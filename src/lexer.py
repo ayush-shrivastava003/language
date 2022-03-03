@@ -1,6 +1,6 @@
 # from types import *
 
-PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, VAR, EOF = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "VAR", "EOF"
+PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, VAR, EOF, SEPR = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "VAR", "EOF", "SEPR"
 ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
 
 class Token():
@@ -54,7 +54,7 @@ class Lexer():
   def get_word(self):
     final = ""
 
-    while self.char != None and self.char.isalpha():
+    while self.char != None and (self.char.isalpha() or self.char == "_"):
       final += self.char
       self.increment()
     
@@ -75,7 +75,7 @@ class Lexer():
     tokens = []
     self.increment()
     while self.char != None:
-      if self.char.isspace() or self.char == "\n":
+      if self.char.isspace():
         pass
 
       elif self.char.isdigit():
@@ -99,7 +99,17 @@ class Lexer():
 
       elif self.char == ")":
         tokens.append(Token(PARCLOSE, ")"))
-      
+
+      elif self.char == ";":
+        tokens.append(Token(SEPR, ";"))
+
+      elif self.char == "?":
+        self.increment()
+        while self.char != "?":
+            self.increment()
+
+        self.increment()
+
       else:
         x = self.char.replace('\n', '\\n').replace('\t', '\\t')
         print(f"\x1b[31munrecognized character '{x}'\x1b[0m")
@@ -107,5 +117,4 @@ class Lexer():
       
       self.increment()
     
-    print('returning', tokens)
     return tokens
