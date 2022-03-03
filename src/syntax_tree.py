@@ -17,13 +17,17 @@ class AbstractSyntaxTree():
     ```
     it's a helpful way to visualize how the interpreter solves expressions.
     """
-    pass
+
+class Program(AbstractSyntaxTree):
+    def __init__(self, children):
+        self.children = children
 
 class BinaryOperator(AbstractSyntaxTree):
     def __init__(self, operator, left, right):
         self.operator = operator
         self.left = left
         self.right = right
+        # print(self.__repr__())
         
     def __repr__(self):
         return f"BinaryOperator(\noperator: {self.operator},\nleft: {self.left},\nright: {self.right}\n)"
@@ -32,6 +36,7 @@ class UnaryOperator(AbstractSyntaxTree):
     def __init__(self, operator, child):
         self.operator = operator
         self.child = child # token that the unary operator is modifying
+        # print(self.__repr__())
 
     def __repr__(self):
         return f"UnaryOperator(operator: {self.operator}, child: {self.child}\n)"
@@ -39,6 +44,25 @@ class UnaryOperator(AbstractSyntaxTree):
 class Number(AbstractSyntaxTree):
     def __init__(self, token):
         self.token = token
+        # print(self.__repr__)
     
     def __repr__(self):
         return f"Number({self.token})"
+
+class Assign(AbstractSyntaxTree):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+        # print(self.__repr__)
+
+    def __repr__(self):
+        return f"Assign(name: {self.name}, value: {self.value})"
+
+class Variable(AbstractSyntaxTree):
+    def __init__(self, token):
+        self.token = token
+        # self.token = value
+        # print(self.__repr__())
+
+    def __repr__(self):
+        return f"Variable(name: {str(self.token)})"

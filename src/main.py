@@ -11,6 +11,7 @@ class Interpreter():
     self.parser = Parser()
     self.token_index = -1
     self.current_token = None
+    self.global_scope = {}
 
   def stringify(self):
     return [str(token) for token in self.tokens]
@@ -40,16 +41,28 @@ class Interpreter():
       op_type = node.operator.type # type of operator (node.operator is a token, just accessing the type here)
   
       if op_type == PLUS:
-        return self.walk_tree(node.left) + self.walk_tree(node.right)
+        left = self.walk_tree(node.left)
+        right = self.walk_tree(node.right)
+        print(f"{left} + {right}")
+        return left + right
       
       elif op_type == MINUS:
-        return self.walk_tree(node.left) - self.walk_tree(node.right)
+        left = self.walk_tree(node.left)
+        right = self.walk_tree(node.right)
+        print(f"{left} - {right}")
+        return left - right
       
       elif op_type == MULTIPLY:
-        return self.walk_tree(node.left) * self.walk_tree(node.right)
+        left = self.walk_tree(node.left)
+        right = self.walk_tree(node.right)
+        print(f"{left} * {right}")
+        return left * right
       
       elif op_type == DIVIDE:
-        return self.walk_tree(node.left) / self.walk_tree(node.right)
+        left = self.walk_tree(node.left)
+        right = self.walk_tree(node.right)
+        print(f"{left} / {right}")
+        return left / right
 
     elif type(node) == UnaryOperator:
       if node.operator.type == PLUS:
@@ -58,11 +71,22 @@ class Interpreter():
       elif node.operator.type == MINUS:
         return -(self.walk_tree(node.child))
 
+    elif type(node) == Variable:
+        if node.token.value not in self.global_scope.keys():
+            raise Exception(f"Unknown variable '{node.token.value}'")
+        else:
+            # print("returning var", self.global_scope[node.token.value])
+            return self.global_scope[node.token.value]
+
+    elif type(node) == Assign:
+        self.global_scope[node.name.value] = self.walk_tree(node.value)
+        return {node.name.value: self.global_scope[node.name.value]}
+
   def run(self, content):
     self.parser.setup(content)
     tree = self.parser.parse()
-    print(tree)
-    return self.walk_tree(tree)
+    # print(tree)
+    return [self.walk_tree(child) for child in tree.children]
 
   def run_shell(self):
     print(f"\x1b[32mShell version {_version}")
@@ -76,11 +100,12 @@ class Interpreter():
 
         if content.isspace() or content == "":
           continue
-
+        
         result = self.run(content)
 
-        if result != None:
+        if result != [None]:
           print(result)
+          # print("\n".join(result))
 
       except KeyboardInterrupt:
         print("\nbye")

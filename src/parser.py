@@ -1,4 +1,3 @@
-# from types import *
 from lexer import *
 from syntax_tree import *
 
@@ -28,7 +27,7 @@ class Parser():
         if self.token_index < len(self.tokens): 
             self.current_token = self.tokens[self.token_index]
         else:
-            self.current_token = Token(None, None)
+            self.current_token = Token(EOF, None)
 
     def eat_token(self, expected_token):
         """
@@ -66,6 +65,11 @@ class Parser():
             self.eat_token(MINUS)
             factor = self.get_factor()
             return UnaryOperator(operator=token, child=factor)
+        
+        elif token.type == VAR:
+            self.eat_token(VAR)
+            var = Variable(token)
+            return var
 
 
     def get_term(self):
@@ -85,17 +89,14 @@ class Parser():
         if there are no multiplication or division operators (i.e it is just a number), then it skips over the while loop.
         """
         final = self.get_factor()
-
         while self.current_token.type in (MULTIPLY, DIVIDE):
             current_token = self.current_token
 
             if current_token.type == MULTIPLY:
                 self.eat_token(MULTIPLY)
-                # final *= self.get_factor()
 
             elif current_token.type == DIVIDE:
                 self.eat_token(DIVIDE)
-                # final /= self.get_factor()
 
             final = BinaryOperator(current_token, final, self.get_factor())
 
@@ -124,59 +125,64 @@ class Parser():
         ```
 
         this process is repeated until one value is reached.
-
-        a more complicated example:
-
-        ```
-        3 * 7 * 9 + 2 * 4 * 5 * 3 + 6 * 7
-        ^^^^^^^^^ feed this into get_term() to simplify into one value (returns 189)
-
-        189 + 2 * 4 * 5 * 3 + 6 * 7
-            ^^^^^^^^^^^^^ feed the next part into get_term() (returns 120).
-            once evaluated, it is immediately added to the left-hand expression (since we know for a fact that it has already been simplified)
-        
-        309 + 6 * 7
-            ^^^^^ feed the final part into get_term() (returns 42)
-            again, immediately adds to the left-hand expression since it is already simplified
-        
-        351
-        ```
         """
         final = self.get_term()
-
         while self.current_token.type in (PLUS, MINUS):
             current_token = self.current_token
 
             if current_token.type == PLUS:
                 self.eat_token(PLUS)
-            # final += self.get_term()
 
             elif current_token.type == MINUS:
                 self.eat_token(MINUS)
-            # final -= self.get_term()
         
             final = BinaryOperator(operator=current_token, left=final, right=self.get_term())
 
         return final
 
+    def get_statements(self):
+        tree_nodes = []
+
+        while self.current_token.type != EOF:
+            if self.current_token.type == VAR:
+                var_name = self.current_token
+                self.eat_token(VAR)
+
+                if self.current_token.type == ASSIGN:
+                    self.eat_token(ASSIGN)
+                    value = self.get_expression()
+                    tree_nodes.append(Assign(var_name, value))
+
+                else:
+                    self.token_index -= 1
+                    self.current_token = self.tokens[self.token_index]
+                    tree_nodes.append(self.get_expression())
+                    self.eat_token(EOF)
+            else:
+                tree_nodes.append(self.get_expression())
+
+                if self.current_token.type in (NUM, None):
+                    self.next_token()
+
+        program = Program([node for node in tree_nodes])
+        return program
+
     def parse(self):
         try:
-            tree = self.get_expression()
-            # self.next_token()
-
-            if self.current_token.type != None:
-                raise SyntaxError(f"Expected end of expression, found '{self.current_token.value}' instead")
-            
+            tree = self.get_statements()
+            self.eat_token(EOF)
             return tree
 
         except Exception as e:
-            print(f"\x1b[31m{e}\x1b[0m")
+            # print(f"\x1b[31m{e}\x1b[0m")
+            raise e
 
     def setup(self, content):
         self.tokens = []
         self.token_index = -1
         self.current_token = None
-        self.lexer.content = content
+        self.lexer.content = r"{}".format(content)
+        print(self.lexer.content)
         self.lexer.index = -1
         # self.lexer.char = content[self.lexer.index]
         self.tokens = self.lexer.tokenize()

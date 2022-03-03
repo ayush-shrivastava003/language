@@ -1,6 +1,6 @@
 # from types import *
 
-PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE"
+PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, VAR, EOF = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "VAR", "EOF"
 ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
 
 class Token():
@@ -19,6 +19,7 @@ class Lexer():
       self.content = " "
       self.index = -1
       self.char = self.content[self.index]
+#      self.keywords = {""}
 
   def increment(self):
     self.index += 1
@@ -28,15 +29,18 @@ class Lexer():
     else:
       self.char = None
 
+  def decrement(self):
+    self.index -= 1
+    self.char = self.content[self.index]
+
   def get_num(self):
     final = ""
 
     while (self.char != None and (self.char.isdigit() or self.char == ".")):
       final += self.char
       self.increment()
-
-    self.index -= 1
-    self.char = self.content[self.index]
+    
+    self.decrement()
 
     if "." in final:
       if len(final.split(".")) > 2:
@@ -47,6 +51,17 @@ class Lexer():
     else:
       return int(final)
 
+  def get_word(self):
+    final = ""
+
+    while self.char != None and self.char.isalpha():
+      final += self.char
+      self.increment()
+    
+    self.decrement()
+#    token = self.keywords[final] if final in self.keywords.keys() else Token(VAR, final)
+    token = Token(VAR, final)
+    return token
 
   def tokenize(self):
     """
@@ -60,18 +75,21 @@ class Lexer():
     tokens = []
     self.increment()
     while self.char != None:
-      if self.char == None:
-        break
+      if self.char.isspace() or self.char == "\n":
+        pass
 
-      if self.char.isspace():
-        self.increment()
-
-      if self.char.isdigit():
+      elif self.char.isdigit():
         num = self.get_num()
         if num != None: 
           tokens.append(Token(NUM, num))
         else: 
           break
+
+      elif self.char.isalpha():
+        tokens.append(self.get_word())
+
+      elif self.char == "=":
+        tokens.append(Token(ASSIGN, "="))
 
       elif self.char in ("+", "-", "*", "/"):
         tokens.append(Token(ops[self.char], self.char))
@@ -83,9 +101,11 @@ class Lexer():
         tokens.append(Token(PARCLOSE, ")"))
       
       else:
-        print("\x1b[31munrecognized character:", self.char, "\x1b[0m")
+        x = self.char.replace('\n', '\\n').replace('\t', '\\t')
+        print(f"\x1b[31munrecognized character '{x}'\x1b[0m")
         return []
       
       self.increment()
-
+    
+    print('returning', tokens)
     return tokens
