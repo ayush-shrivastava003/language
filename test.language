@@ -1,5 +1,3 @@
-? aljdsfl;eto8y935t8935toishjdlkj ?
-x = 10;
-y = 70;
-z = y - x - 10;
-x = a;
+num x = 10;
+num y = 70;
+num z = y - x - 10;

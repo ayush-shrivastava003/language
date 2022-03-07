@@ -30,7 +30,7 @@ class BinaryOperator(AbstractSyntaxTree):
         # print(self.__repr__())
         
     def __repr__(self):
-        return f"BinaryOperator(\noperator: {self.operator},\nleft: {self.left},\nright: {self.right}\n)"
+        return f"BinaryOperator()"
 
 class UnaryOperator(AbstractSyntaxTree):
     def __init__(self, operator, child):
@@ -39,7 +39,7 @@ class UnaryOperator(AbstractSyntaxTree):
         # print(self.__repr__())
 
     def __repr__(self):
-        return f"UnaryOperator(operator: {self.operator}, child: {self.child}\n)"
+        return f"UnaryOperator()"
 
 class Number(AbstractSyntaxTree):
     def __init__(self, token):
@@ -53,10 +53,9 @@ class Assign(AbstractSyntaxTree):
     def __init__(self, name, value):
         self.name = name
         self.value = value
-        # print(self.__repr__)
 
     def __repr__(self):
-        return f"Assign(name: {self.name}, value: {self.value})"
+        return f"Assign()"
 
 class Variable(AbstractSyntaxTree):
     def __init__(self, token):
@@ -65,4 +64,10 @@ class Variable(AbstractSyntaxTree):
         # print(self.__repr__())
 
     def __repr__(self):
-        return f"Variable(name: {str(self.token)})"
+        return f"Variable()"
+
+class Declare(AbstractSyntaxTree):
+    def __init__(self, name, value, type):
+        self.name = name
+        self.value = value
+        self.type = type

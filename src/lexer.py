@@ -1,6 +1,6 @@
 # from types import *
 
-PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, VAR, EOF, SEPR = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "VAR", "EOF", "SEPR"
+PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, VAR, EOF, SEPR, TYPE = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "VAR", "EOF", "SEPR", "TYPE"
 ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
 
 class Token():
@@ -19,7 +19,7 @@ class Lexer():
       self.content = " "
       self.index = -1
       self.char = self.content[self.index]
-#      self.keywords = {""}
+      self.types = {"num": Token(TYPE, NUM)}
 
   def increment(self):
     self.index += 1
@@ -59,19 +59,10 @@ class Lexer():
       self.increment()
     
     self.decrement()
-#    token = self.keywords[final] if final in self.keywords.keys() else Token(VAR, final)
-    token = Token(VAR, final)
+    token = self.types[final] if final in self.types.keys() else Token(VAR, final)
     return token
 
   def tokenize(self):
-    """
-    converts the content into a stream of tokens readable to the parser
-    and interpreter
-
-    example:
-
-    "1 + 2" -> (Token(NUM, 1), Token(PLUS, PLUS), Token(NUM, 2))
-    """
     tokens = []
     self.increment()
     while self.char != None:
