@@ -1,3 +1,6 @@
+from unicodedata import name
+
+
 class AbstractSyntaxTree():
     r"""
     this file contains the abstract syntax tree for the main parser.
@@ -18,9 +21,12 @@ class AbstractSyntaxTree():
     it's a helpful way to visualize how the interpreter solves expressions.
     """
 
-class Program(AbstractSyntaxTree):
+class CodeBlock(AbstractSyntaxTree):
     def __init__(self, children):
         self.children = children
+    
+    def __repr__(self):
+        return f"CODE BLOCK: {self.children}"
 
 class BinaryOperator(AbstractSyntaxTree):
     def __init__(self, operator, left, right):
@@ -30,7 +36,7 @@ class BinaryOperator(AbstractSyntaxTree):
         # print(self.__repr__())
         
     def __repr__(self):
-        return f"BinaryOperator()"
+        return f"BIN OP: {self.left} {self.operator.value} {self.right}"
 
 class UnaryOperator(AbstractSyntaxTree):
     def __init__(self, operator, child):
@@ -39,7 +45,7 @@ class UnaryOperator(AbstractSyntaxTree):
         # print(self.__repr__())
 
     def __repr__(self):
-        return f"UnaryOperator()"
+        return f"{self.operator}{self.child}"
 
 class Number(AbstractSyntaxTree):
     def __init__(self, token):
@@ -47,7 +53,7 @@ class Number(AbstractSyntaxTree):
         # print(self.__repr__)
     
     def __repr__(self):
-        return f"Number({self.token})"
+        return f"{self.token.value}"
 
 class Assign(AbstractSyntaxTree):
     def __init__(self, name, value):
@@ -55,7 +61,7 @@ class Assign(AbstractSyntaxTree):
         self.value = value
 
     def __repr__(self):
-        return f"Assign()"
+        return f"{self.name} = {self.value}"
 
 class Variable(AbstractSyntaxTree):
     def __init__(self, token):
@@ -64,10 +70,38 @@ class Variable(AbstractSyntaxTree):
         # print(self.__repr__())
 
     def __repr__(self):
-        return f"Variable()"
+        return f"{self.token.value}"
 
 class Declare(AbstractSyntaxTree):
     def __init__(self, name, value, type):
         self.name = name
         self.value = value
         self.type = type
+    
+    def __repr__(self):
+        return f"DECLARE: '{self.type} {self.name.value} = {self.value}'"
+
+class Argument(AbstractSyntaxTree):
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+
+    def __repr__(self):
+        return f"'{self.name}: {self.type}'"
+
+class DeclareFunc(AbstractSyntaxTree):
+    def __init__(self, name, args, statements):
+        self.name = name
+        self.args = args
+        self.statements = statements
+    
+    def __repr__(self):
+        return f"DECLARE '{self.name}' with args {self.args}"
+
+class FunctionCall(AbstractSyntaxTree):
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+    
+    def __repr__(self) -> str:
+        return f"CALLING '{self.name}' with the given args {self.args}"

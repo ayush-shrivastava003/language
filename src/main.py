@@ -1,7 +1,7 @@
 from lexer import *
 from syntax_tree import *
 from parser import Parser
-from symbol_table import SemanticAnalyzer
+from semantic_analyzer import SemanticAnalyzer
 import sys
 import readline # cursor navigation in python input
 
@@ -60,15 +60,19 @@ class Interpreter():
       return var_value
 
     elif type(node) == Variable:
-      print(node)
       return self.global_scope[node.token.value]
 
     elif type(node) == Assign:
-        print(node.name)
         var_name = self.traverse(node.name)
         var_value = self.traverse(node.value)
         self.global_scope[var_name] = var_value
         return var_value
+
+    elif type(node) == DeclareFunc:
+      pass
+
+    elif type(node) == FunctionCall:
+      pass
 
   def run(self, content):
     try:
@@ -78,7 +82,7 @@ class Interpreter():
       return [self.traverse(child) for child in tree.children]
     
     except Exception as e:
-      # print("whoops", e)
+      print("\x1b[0m")
       raise e
 
   def run_shell(self):
@@ -109,7 +113,7 @@ i = Interpreter()
 if len(sys.argv) >= 2:
   if sys.argv[1] == "--eval":
     print(i.run(sys.argv[2]))
-    exit()
+    quit()
 
   try:
     with open(sys.argv[1]) as f:
