@@ -14,7 +14,7 @@ class VariableSymbol(Symbol):
         super().__init__(name, type)
 
     def __repr__(self):
-        return f"VariableSymbol(name: {self.name}, type: {self.type}"
+        return f"VariableSymbol(name: {self.name}, type: {self.type})"
 
 class TypeSymbol(Symbol):
     def __init__(self, name):
@@ -24,11 +24,13 @@ class TypeSymbol(Symbol):
         return f"TypeSymbol(name: {self.name})"
 
 class FunctionSymbol(Symbol):
-    def __init__(self, name, type=None):
+    def __init__(self, name, statements, args=None):
         super().__init__(name)
+        self.args = [] if args == None else args
+        self.statements = statements
     
     def __repr__(self):
-        return f"FunctionSymbol(name: {self.name})"
+        return f"FunctionSymbol(name: {self.name}, args: {self.args})"
 
 class SymbolTable():
     def __init__(self):
@@ -45,6 +47,11 @@ class SymbolTable():
         symbol = self.symbols.get(name)
 
         return symbol
+
+    def __repr__(self):
+        g = '\n'.join([f"{name}: {value}" for name, value in self.symbols.items()])
+        # f = ""
+        return f"SYMBOLS:\n{g}\n"
 
 class Scope():
     def __init__(self, name, level, parent=None):
@@ -91,7 +98,10 @@ class Scope():
         if self.parent != None:
             symbol = self.parent.lookup(name, category)
             return symbol
-        
+    
+    def add_symbol(self, symbol, category):
+        symbol.level = self.level
+        self.data[category].add_symbol(symbol)
 
 class SemanticAnalyzer():
     def __init__(self):
@@ -99,7 +109,6 @@ class SemanticAnalyzer():
         self.global_scope = self.scope
 
     def traverse(self, node) -> None:
-        print("visiting", node)
         if type(node) == Number:
             pass
 
@@ -126,7 +135,7 @@ class SemanticAnalyzer():
                 raise Exception("variable already declared:", name)
 
             var = VariableSymbol(name, node_type)
-            self.scope.vars.add_symbol(var)
+            self.scope.add_symbol(var, "vars")
 
         elif type(node) == Assign:
             self.traverse(node.name)
@@ -142,15 +151,17 @@ class SemanticAnalyzer():
         elif type(node) == DeclareFunc:
             function_name =  node.name
             if self.scope.lookup(function_name, "functions") == None:
-                symbol = FunctionSymbol(function_name)
-                self.scope.functions.add_symbol(symbol)
-
+                _symbol = FunctionSymbol(function_name, node.statements)
+                
+                self.scope.add_symbol(_symbol, "functions")
                 new_scope = Scope(function_name, self.scope.level+1, self.global_scope)
                 self.scope = new_scope
+
                 for arg in node.args:
-                    if self.scope.data["vars"].lookup(arg.name) == None:
-                        arg_symbol = VariableSymbol(arg.name, arg.type)
-                        self.scope.vars.add_symbol(arg_symbol)
+                    arg_symbol = VariableSymbol(arg.name, arg.type)
+                    self.scope.add_symbol(arg_symbol, "vars")
+
+                    _symbol.args.append(arg_symbol)
 
                 [self.traverse(child) for child in node.statements]
                 self.scope = self.scope.parent
@@ -158,10 +169,18 @@ class SemanticAnalyzer():
                 raise Exception("function already declared")
 
         elif type(node) == FunctionCall:
-            if self.scope.lookup(node.name, "functions") == None:
+            symbol = self.scope.lookup(node.name, "functions")
+            # print(symbol)
+            if symbol == None:
                 raise Exception(f"unkown function '{node.name}'")
-            else:
-                [self.traverse(arg) for arg in node.args]
+            
+            elif len(node.args) != len(symbol.args):
+                # print(node.args)
+                # print(symbol.args)
+                raise Exception(f"wanted {len(symbol.args)} argument(s), got {len(node.args)}")
+            
+            node.symbol = symbol
+            [self.traverse(arg) for arg in node.args]
     
     def analyze(self, tree):
         pass

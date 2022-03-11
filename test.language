@@ -3,15 +3,17 @@ num y = 70;
 num z = y - x - 10;
 x * 10;
 
-fn fn_name(name: num):
-    name = 10;
-    x = 10;
-    ? another_arg = 30; ? 
+fn fn_1(numerouno: num):
+    numerouno = 10;
 end;
 
-? fn fn_name2(name: num, another_arg: num):
+fn fn_2(name: num):
     name = 20;
-    fn_name;
-end; ?
+   fn_1(name);
+end;
 
-fn_name();
+fn fn_3(arg_name: num):
+    fn_2(arg_name);
+end;
+
+fn_3(20);

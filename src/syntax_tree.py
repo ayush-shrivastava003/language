@@ -87,21 +87,23 @@ class Argument(AbstractSyntaxTree):
         self.type = type
 
     def __repr__(self):
-        return f"'{self.name}: {self.type}'"
+        return f"{self.name}: {self.type}"
 
 class DeclareFunc(AbstractSyntaxTree):
     def __init__(self, name, args, statements):
         self.name = name
         self.args = args
         self.statements = statements
+        # self.symbol = symbol
     
     def __repr__(self):
-        return f"DECLARE '{self.name}' with args {self.args}"
+        return f"function '{self.name}' with args {self.args}"
 
 class FunctionCall(AbstractSyntaxTree):
-    def __init__(self, name, args):
+    def __init__(self, name, args, symbol=None):
         self.name = name
         self.args = args
+        self.symbol = symbol
     
     def __repr__(self) -> str:
-        return f"CALLING '{self.name}' with the given args {self.args}"
+        return f"'{self.name}' with the given args {self.args}"
