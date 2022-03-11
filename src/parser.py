@@ -60,9 +60,11 @@ class Parser():
             return UnaryOperator(operator=token, child=factor)
         
         elif token.type == NAME:
+            if self.peek().type == PAROPEN:
+                return self.call_function()
+            
             self.eat_token(NAME)
-            var = Variable(token)
-            return var
+            return Variable(token)
 
 
     def get_term(self) -> BinaryOperator:
@@ -144,6 +146,24 @@ class Parser():
 
         return DeclareFunc(func_name, args, statments)
 
+    def call_function(self) -> FunctionCall:
+        name = self.current_token.value
+        self.eat_token(NAME)
+        self.eat_token(PAROPEN)
+        
+        if self.current_token.type == PARCLOSE:
+            self.eat_token(PARCLOSE)
+            return FunctionCall(name, [])
+
+        args = [self.get_expression()]
+
+        while self.current_token == COMMA:
+            self.eat_token(COMMA)
+            args.append(self.get_expression())
+        self.eat_token(PARCLOSE)
+
+        return FunctionCall(name, args)
+
     def get_statements(self, end_keyword) -> CodeBlock: # end keyword could be EOF, FUNCCLOSE, etc
         tree_nodes = []
         while self.current_token.type != end_keyword:
@@ -160,20 +180,7 @@ class Parser():
                     tree_nodes.append(Assign(name_node, value))
 
                 elif self.peek().type == PAROPEN: # function call
-                    name = self.current_token.value
-                    self.eat_token(NAME)
-                    self.eat_token(PAROPEN)
-                    
-                    if self.current_token.type == PARCLOSE:
-                        self.eat_token(PARCLOSE)
-                        tree_nodes.append(FunctionCall(name, [])) 
-                    else:
-                        args = [self.get_expression()]
-                        while self.current_token == COMMA:
-                            self.eat_token(COMMA)
-                            args.append(self.get_expression())
-                        self.eat_token(PARCLOSE)
-                        tree_nodes.append(FunctionCall(name, args))
+                        tree_nodes.append(self.call_function())
 
                 else:
                     tree_nodes.append(self.get_expression())

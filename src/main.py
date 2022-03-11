@@ -21,9 +21,12 @@ class StackFrame():
     """
     builtin function by python that allows easy modifications to the `StackFrame.data` dictionary.
     """
+    print(f"adding {key}: {value} to {self.data}")
     self.data[key] = value
 
   def __getitem__(self, key):
+    # print(self.data)
+    print("getting", key)
     return self.data.get(key)
 
   def __repr__(self):
@@ -41,7 +44,7 @@ class CallStack():
     self.frames = []
 
   def __repr__(self):
-    frames = '\n- '.join(reversed(self.frames))
+    frames = '\n'.join(reversed(self.frames))
     return f"Call Stack:\n{frames}"
 
   def push(self, frame):
@@ -123,9 +126,6 @@ class Interpreter():
         frame[var_name] = var_value
         return var_value
 
-    elif type(node) == DeclareFunc:
-      pass
-
     elif type(node) == FunctionCall:
       # stack_level = len(self.stack.frames) + 1
       frame = StackFrame(node.name, "FUNCTION", node.symbol.level)
@@ -134,14 +134,11 @@ class Interpreter():
       passed_args = node.args
 
       for arg_name, arg_value in zip(expected_args, passed_args):
-          frame[arg_name] = arg_value
+          frame[arg_name.name] = self.traverse(arg_value)
 
-      print(f"adding {frame.name} to call stack")
       self.stack.push(frame)
       # [self.traverse(statement) for statement in node.symbol.statements]
-      for statement in node.symbol.statements:
-        print(f"traversing {statement}")
-        self.traverse(statement)
+      return [self.traverse(statement) for statement in node.symbol.statements]
 
 
   def run(self, content):
@@ -197,5 +194,4 @@ if len(sys.argv) >= 2:
     print(f"\x1b[31mfile does not exist: '{sys.argv[1]}'\x1b[0m")
 
 elif len(sys.argv) == 1:
-  with open("test.language") as f:
-    print(i.run(f.read()))
+  i.run_shell()

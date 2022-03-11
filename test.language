@@ -1,19 +1,20 @@
 num x = 10;
 num y = 70;
 num z = y - x - 10;
+z = 10;
 x * 10;
 
 fn fn_1(numerouno: num):
-    numerouno = 10;
+    numerouno;
 end;
 
 fn fn_2(name: num):
     name = 20;
-   fn_1(name);
+    fn_1(name + 10);
 end;
 
 fn fn_3(arg_name: num):
-    fn_2(arg_name);
+    fn_2(arg_name + 20);
 end;
 
-fn_3(20);
+num g = fn_3(20*30);

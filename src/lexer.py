@@ -1,5 +1,3 @@
-# from types import *
-
 PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, FUNCCLOSE, COLON, COMMA = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "FUNCCLOSE", "COLON", "COMMA"
 ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
 
@@ -89,29 +87,26 @@ class Lexer():
 
       elif self.char.isdigit():
         num = self.get_num()
-        if num != None: 
-          tokens.append(Token(NUM, num))
-        else: 
-          break
+        tokens.append(Token(NUM, num, line, column))
 
       elif self.char.isalpha():
         tokens.append(self.get_word(line, column))
 
       elif self.char == "=":
-        tokens.append(Token(ASSIGN, "="))
+        tokens.append(Token(ASSIGN, "=", line, column))
         # return
 
       elif self.char in ("+", "-", "*", "/"):
-        tokens.append(Token(ops[self.char], self.char))
+        tokens.append(Token(ops[self.char], self.char, line, column))
 
       elif self.char == "(":
-        tokens.append(Token(PAROPEN, "("))
+        tokens.append(Token(PAROPEN, "(", line, column))
 
       elif self.char == ")":
-        tokens.append(Token(PARCLOSE, ")"))
+        tokens.append(Token(PARCLOSE, ")", line, column))
 
       elif self.char == ";":
-        tokens.append(Token(SEPR, ";"))
+        tokens.append(Token(SEPR, ";", line, column))
 
       elif self.char == "?":
         self.increment()
@@ -121,17 +116,19 @@ class Lexer():
         self.increment()
 
       elif self.char == ":":
-        tokens.append(Token(COLON, ":"))
+        tokens.append(Token(COLON, ":", line, column))
 
       elif self.char == ",":
-        tokens.append(Token(COMMA, ","))
+        tokens.append(Token(COMMA, ",", line, column))
 
       else:
         x = self.char.replace('\n', '\\n').replace('\t', '\\t')
         print(f"\x1b[31munrecognized character '{x}'\x1b[0m")
         return []
       
-      tokens[-1].line, tokens[-1].column = line, column
+      # tokens[-1].line, tokens[-1].column = line, column
       self.increment()
     
+    # line, column = tokens[-1].line, tokens[-1].column+1
+    # tokens.append(Token(EOF, None, line, column))
     return tokens
