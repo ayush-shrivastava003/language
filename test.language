@@ -2,6 +2,7 @@ num x = 10;
 num y = 70;
 num z = y - x - 10;
 z = 10;
+z = z * 10;
 x * 10;
 
 fn fn_1(numerouno: num):

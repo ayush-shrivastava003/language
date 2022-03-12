@@ -24,10 +24,11 @@ class TypeSymbol(Symbol):
         return f"TypeSymbol(name: {self.name})"
 
 class FunctionSymbol(Symbol):
-    def __init__(self, name, statements, args=None):
+    def __init__(self, name, statements, args=None, return_statement=None):
         super().__init__(name)
         self.args = [] if args == None else args
         self.statements = statements
+        self.return_statement = return_statement
     
     def __repr__(self):
         return f"FunctionSymbol(name: {self.name}, args: {self.args})"
@@ -40,7 +41,6 @@ class SymbolTable():
         self.symbols = {}
 
     def add_symbol(self, symbol):
-        # print(f"INSERT: {symbol}")
         self.symbols[symbol.name] = symbol
 
     def lookup(self, name):
@@ -50,7 +50,6 @@ class SymbolTable():
 
     def __repr__(self):
         g = '\n'.join([f"{name}: {value}" for name, value in self.symbols.items()])
-        # f = ""
         return f"SYMBOLS:\n{g}\n"
 
 class Scope():
@@ -90,7 +89,6 @@ class Scope():
         """
 
     def lookup(self, name, category):
-        # print(f"({self.name}) {category.upper()} LOOKUP: {name}")
         symbol = self.data[category].lookup(name)
         if symbol != None:
             return symbol
@@ -164,23 +162,25 @@ class SemanticAnalyzer():
                     _symbol.args.append(arg_symbol)
 
                 [self.traverse(child) for child in node.statements]
+                # if Return in [type(child) for child in node.statements]:
+                #   node.return_statement = []
                 self.scope = self.scope.parent
             else:
                 raise Exception("function already declared")
 
         elif type(node) == FunctionCall:
             symbol = self.scope.lookup(node.name, "functions")
-            # print(symbol)
             if symbol == None:
                 raise Exception(f"unkown function '{node.name}'")
             
             elif len(node.args) != len(symbol.args):
-                # print(node.args)
-                # print(symbol.args)
                 raise Exception(f"wanted {len(symbol.args)} argument(s), got {len(node.args)}")
             
             node.symbol = symbol
             [self.traverse(arg) for arg in node.args]
-    
+
+        # elif type(node) == Return:
+        #   self.traverse(node.statement)
+  
     def analyze(self, tree):
         pass

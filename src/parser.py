@@ -121,7 +121,7 @@ class Parser():
 
         return Argument(arg_name, arg_type)
 
-    def get_func_args(self) -> list[Argument]:
+    def get_func_args(self) -> list:
         if self.current_token.type == PARCLOSE:
             return []
 
@@ -142,9 +142,9 @@ class Parser():
         self.eat_token(PARCLOSE)
         self.eat_token(COLON)
 
-        statments = self.get_statements(FUNCCLOSE).children
+        statements = self.get_statements(FUNCCLOSE).children
 
-        return DeclareFunc(func_name, args, statments)
+        return DeclareFunc(func_name, args, statements)
 
     def call_function(self) -> FunctionCall:
         name = self.current_token.value
@@ -190,6 +190,10 @@ class Parser():
                 node = self.declare_func()
                 self.eat_token(FUNCCLOSE)
                 tree_nodes.append(node)
+
+            # elif self.current_token.type == RETURN:
+            #   self.eat_token(RETURN)
+            #   tree_nodes.append(Return(self.get_expression()))
 
             else:
                 tree_nodes.append(self.get_expression())

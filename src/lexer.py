@@ -23,7 +23,8 @@ class Lexer():
       self.keywords = {
         "num": (TYPE, NUM),
         "fn": (FUNCOPEN, "fn"),
-        "end": (FUNCCLOSE, "end")
+        "end": (FUNCCLOSE, "end"),
+        # "return": (RETURN, "return")
       }
 
   def increment(self) -> None:
@@ -77,7 +78,7 @@ class Lexer():
     else:
       return Token(NAME, final, line, column)
 
-  def tokenize(self) -> list[Token]:
+  def tokenize(self) -> list:
     tokens = []
     self.increment()
     while self.char != None:

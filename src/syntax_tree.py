@@ -107,3 +107,7 @@ class FunctionCall(AbstractSyntaxTree):
     
     def __repr__(self) -> str:
         return f"'{self.name}' with the given args {self.args}"
+
+# class Return():
+#   def __init__(self, statement):
+#     self.statement = statement

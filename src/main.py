@@ -21,12 +21,9 @@ class StackFrame():
     """
     builtin function by python that allows easy modifications to the `StackFrame.data` dictionary.
     """
-    print(f"adding {key}: {value} to {self.data}")
     self.data[key] = value
 
   def __getitem__(self, key):
-    # print(self.data)
-    print("getting", key)
     return self.data.get(key)
 
   def __repr__(self):
@@ -52,20 +49,17 @@ class CallStack():
     push a new frame onto the call stack.
     """
     self.frames.append(frame)
-    # print("pushed new frame to stack:", frame)
   
   def pull(self, frame):
     """
     remove the topmost frame from the call stack.
     """
     self.frames.pop()
-    # print("pulled frame from stack:", frame)
   
   def show_frame(self):
     """
     return the frame currently executing in the stack (the topmost one)
     """
-    # print("returning", self.frames[-1])
     return self.frames[-1]
 
 class Interpreter():
@@ -111,7 +105,6 @@ class Interpreter():
     elif type(node) == Declare:
       var_name = node.name.value
       var_value = self.traverse(node.value)
-      # self.global_scope[var_name] = var_value
       frame = self.stack.show_frame()
       frame[var_name] = var_value
       return var_value
@@ -127,7 +120,6 @@ class Interpreter():
         return var_value
 
     elif type(node) == FunctionCall:
-      # stack_level = len(self.stack.frames) + 1
       frame = StackFrame(node.name, "FUNCTION", node.symbol.level)
 
       expected_args = node.symbol.args
@@ -137,8 +129,10 @@ class Interpreter():
           frame[arg_name.name] = self.traverse(arg_value)
 
       self.stack.push(frame)
-      # [self.traverse(statement) for statement in node.symbol.statements]
       return [self.traverse(statement) for statement in node.symbol.statements]
+
+    # elif type(node) == Return:
+    #   return self.traverse(node.statement)
 
 
   def run(self, content):
@@ -149,9 +143,9 @@ class Interpreter():
 
       frame = StackFrame("PROGRAM", "PROGRAM", 1)
       self.stack.push(frame)
-      final = [self.traverse(child) for child in tree.children]
+      [self.traverse(child) for child in tree.children]
       self.stack.pull(frame)
-      return final
+      return
     
     except Exception as e:
       print("\x1b[0m")
@@ -174,7 +168,6 @@ class Interpreter():
 
         if result != [None]:
           print(result)
-          # print("\n".join(result))
 
       except KeyboardInterrupt:
         print("\nbye")
