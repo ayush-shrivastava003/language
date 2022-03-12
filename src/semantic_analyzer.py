@@ -162,8 +162,6 @@ class SemanticAnalyzer():
                     _symbol.args.append(arg_symbol)
 
                 [self.traverse(child) for child in node.statements]
-                # if Return in [type(child) for child in node.statements]:
-                #   node.return_statement = []
                 self.scope = self.scope.parent
             else:
                 raise Exception("function already declared")
@@ -179,8 +177,8 @@ class SemanticAnalyzer():
             node.symbol = symbol
             [self.traverse(arg) for arg in node.args]
 
-        # elif type(node) == Return:
-        #   self.traverse(node.statement)
+        elif type(node) == Return:
+            self.traverse(node.statement)
   
     def analyze(self, tree):
         pass

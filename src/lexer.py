@@ -1,4 +1,4 @@
-PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, FUNCCLOSE, COLON, COMMA = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "FUNCCLOSE", "COLON", "COMMA"
+PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, FUNCCLOSE, COLON, COMMA, RETURN = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "FUNCCLOSE", "COLON", "COMMA", "RETURN"
 ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
 
 class Token():
@@ -24,7 +24,7 @@ class Lexer():
         "num": (TYPE, NUM),
         "fn": (FUNCOPEN, "fn"),
         "end": (FUNCCLOSE, "end"),
-        # "return": (RETURN, "return")
+        "return": (RETURN, "return")
       }
 
   def increment(self) -> None:
@@ -129,7 +129,5 @@ class Lexer():
       
       # tokens[-1].line, tokens[-1].column = line, column
       self.increment()
-    
-    # line, column = tokens[-1].line, tokens[-1].column+1
-    # tokens.append(Token(EOF, None, line, column))
+
     return tokens

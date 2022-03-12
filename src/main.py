@@ -7,6 +7,15 @@ import readline # cursor navigation in python input
 
 _version = "0.1"
 
+class ReturnException(Exception):
+  """
+  this exception is raised once we hit a return statement. 
+  it allows the interpreter to jump back several layers of nesting to reach the function call.
+  """
+  def __init__(self, value, *args: object):
+      super().__init__(*args)
+      self.value = value
+
 class StackFrame():
   def __init__(self, name, type, level):
     """
@@ -129,11 +138,15 @@ class Interpreter():
           frame[arg_name.name] = self.traverse(arg_value)
 
       self.stack.push(frame)
-      return [self.traverse(statement) for statement in node.symbol.statements]
+      try:
+        for statement in node.symbol.statements:
+          self.traverse(statement)
 
-    # elif type(node) == Return:
-    #   return self.traverse(node.statement)
+      except ReturnException as e:
+        return e.value
 
+    elif type(node) == Return:
+      raise ReturnException(self.traverse(node.statement))
 
   def run(self, content):
     try:

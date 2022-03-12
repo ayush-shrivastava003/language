@@ -16,6 +16,7 @@ end;
 
 fn fn_3(arg_name: num):
     fn_2(arg_name + 20);
+    return 10;
 end;
 
 num g = fn_3(20*30);
