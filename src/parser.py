@@ -195,6 +195,10 @@ class Parser():
                 self.eat_token(RETURN)
                 tree_nodes.append(Return(self.get_expression()))
 
+            elif self.current_token.type == PRINT:
+                self.eat_token(PRINT)
+                tree_nodes.append(Print(self.get_expression()))
+
             else:
                 tree_nodes.append(self.get_expression())
 

@@ -1,22 +1,41 @@
 num x = 10;
+print x;
+
 num y = 70;
+print y;
+
 num z = y - x - 10;
+print z;
+
 z = 10;
+print z;
+
 z = z * 10;
-x * 10;
+print z;
+
+print x * 10;
+
+x = 12;
+print x;
 
 fn fn_1(numerouno: num):
-    numerouno;
+    print numerouno;
+    return numerouno;
 end;
 
 fn fn_2(name: num):
+    print name;
     name = 20;
-    fn_1(name + 10);
+    print name;
+    return name;
 end;
 
 fn fn_3(arg_name: num):
-    fn_2(arg_name + 20);
-    return 10;
+    print arg_name;
+    num u = fn_2(arg_name + 20);
+    print u;
+    return u;
 end;
 
 num g = fn_3(20*30);
+print g;

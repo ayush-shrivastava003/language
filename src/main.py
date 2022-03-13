@@ -38,7 +38,7 @@ class StackFrame():
   def __repr__(self):
     content = "CONTENT:\n" + ("="*8)
     for key, value in self.data.items():
-      content += f"\n{key} : {value}"
+      content += f"\n{key} ({type(key)}) : {value}"
     return f"{self.type} {self.name} @ stack level {self.level}\n{content}"
 
 class CallStack():
@@ -122,7 +122,7 @@ class Interpreter():
       return self.stack.show_frame()[node.token.value]
 
     elif type(node) == Assign:
-        var_name = self.traverse(node.name)
+        var_name = node.name.token.value
         var_value = self.traverse(node.value)
         frame = self.stack.show_frame()
         frame[var_name] = var_value
@@ -147,6 +147,9 @@ class Interpreter():
 
     elif type(node) == Return:
       raise ReturnException(self.traverse(node.statement))
+
+    elif type(node) == Print:
+      print(self.traverse(node.expression))
 
   def run(self, content):
     try:
