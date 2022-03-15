@@ -200,6 +200,9 @@ class Interpreter():
       raise ReturnException(self.traverse(node.statement))
 
     elif type(node) == Print:
+      if node.expression == "":
+        print()
+        return
       print(self.traverse(node.expression))
 
     elif type(node) == IfStatement:
@@ -256,7 +259,7 @@ if len(sys.argv) >= 2:
   if sys.argv[1] == "--eval":
     print(i.run(sys.argv[2]))
     quit()
-
+  
   try:
     with open(sys.argv[1]) as f:
      i.run(f.read())

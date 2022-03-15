@@ -257,9 +257,6 @@ class Parser():
         block = self.code_block(END)
         self.eat_token(END)
 
-        # children = [initializer]
-        # children.extend(block.children)
-        # block.children = children # put the initializer up at the front
         block.children.append(increment) # put the incrementer at the back
 
         while_loop = WhileStatement(condition, block)
@@ -293,7 +290,7 @@ class Parser():
 
             elif self.current_token.type == PRINT:
                 self.eat_token(PRINT)
-                value = None
+                value = ""
                 if self.current_token.type != SEPR:
                     value = self.get_expression()
 
