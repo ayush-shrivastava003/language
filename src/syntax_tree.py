@@ -136,3 +136,11 @@ class Logical(AbstractSyntaxTree):
 
     def __repr__(self) -> str:
         return f"{self.left} OR {self.right}"
+
+class WhileStatement(AbstractSyntaxTree):
+    def __init__(self, condition, block):
+        self.condition = condition
+        self.block = block
+
+    def __repr__(self):
+        return f"while ({self.condition}): {self.block}"

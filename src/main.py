@@ -60,7 +60,7 @@ class CallStack():
     """
     self.frames.append(frame)
   
-  def pull(self, frame):
+  def pull(self):
     """
     remove the topmost frame from the call stack.
     """
@@ -71,6 +71,9 @@ class CallStack():
     return the frame currently executing in the stack (the topmost one)
     """
     return self.frames[-1]
+
+  def level(self):
+    return self.show_frame().level + 1
 
 class Interpreter():
   def __init__(self):
@@ -91,6 +94,10 @@ class Interpreter():
     if type(node) == Number:
       return node.token.value
     
+    elif type(node) == CodeBlock:
+      for statement in node.children:
+        self.traverse(statement)
+
     elif type(node) == BinaryOperator:
       op_type = node.operator.type # type of operator (node.operator is a token, just accessing the type here)
       left = self.traverse(node.left)
@@ -151,7 +158,6 @@ class Interpreter():
         if not self.is_truthy(left):
           return left # since left is not truthy, we return that to indicate the operation is falsey.
         return self.traverse(node.right)
-        
 
     elif type(node) == Declare:
       var_name = node.name.value
@@ -171,21 +177,24 @@ class Interpreter():
         return var_value
 
     elif type(node) == FunctionCall:
-      frame = StackFrame(node.name, "FUNCTION", node.symbol.level)
+      frame = StackFrame(node.name, "FUNCTION", self.stack.level())
 
       expected_args = node.symbol.args
       passed_args = node.args
+      return_value = None
 
       for arg_name, arg_value in zip(expected_args, passed_args):
           frame[arg_name.name] = self.traverse(arg_value)
 
       self.stack.push(frame)
       try:
-        for statement in node.symbol.statements:
-          self.traverse(statement)
+        self.traverse(node.symbol.statements)
 
       except ReturnException as e:
-        return e.value
+        return_value = e.value
+
+      self.stack.pull()
+      return return_value
 
     elif type(node) == Return:
       raise ReturnException(self.traverse(node.statement))
@@ -195,24 +204,25 @@ class Interpreter():
 
     elif type(node) == IfStatement:
       if self.is_truthy(self.traverse(node.condition)):
-        for statement in node.block.children:
-          self.traverse(statement)
+        self.traverse(node.block)
       
       elif node.else_block != None:
-        for statement in node.block.children:
-          self.traverse(statement)
+        self.traverse(node.block)
+
+    elif type(node) == WhileStatement:
+      while self.is_truthy(self.traverse(node.condition)):
+        self.traverse(node.block)
 
   def run(self, content):
     try:
-      self.parser.setup(content)
-      tree = self.parser.parse()
-      [self.semantic_analyzer.traverse(child) for child in tree.children]
+      if self.parser.setup(content):
+        tree = self.parser.parse()
+        self.semantic_analyzer.traverse(tree)
 
-      frame = StackFrame("PROGRAM", "PROGRAM", 1)
-      self.stack.push(frame)
-      [self.traverse(child) for child in tree.children]
-      self.stack.pull(frame)
-      return
+        frame = StackFrame("PROGRAM", "PROGRAM", 1)
+        self.stack.push(frame)
+        self.traverse(tree)
+        self.stack.pull()
     
     except Exception as e:
       print("\x1b[0m")
@@ -249,7 +259,7 @@ if len(sys.argv) >= 2:
 
   try:
     with open(sys.argv[1]) as f:
-      print(i.run(f.read()))
+     i.run(f.read())
   except FileNotFoundError:
     print(f"\x1b[31mfile does not exist: '{sys.argv[1]}'\x1b[0m")
 

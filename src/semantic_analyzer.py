@@ -110,6 +110,10 @@ class SemanticAnalyzer():
         if type(node) == Number:
             pass
 
+        elif type(node) == CodeBlock:
+            for statement in node.children:
+                self.traverse(statement)
+
         elif type(node) == BinaryOperator:
             # not returning operations because we just want to verify types.
             # it's the interpreter's job to evaluate the operations.
@@ -161,7 +165,7 @@ class SemanticAnalyzer():
 
                     _symbol.args.append(arg_symbol)
 
-                [self.traverse(child) for child in node.statements]
+                self.traverse(node.statements)
                 self.scope = self.scope.parent
             else:
                 raise Exception("function already declared")
@@ -180,19 +184,29 @@ class SemanticAnalyzer():
         elif type(node) == Return:
             self.traverse(node.statement)
 
+        elif type(node) == Print:
+            self.traverse(node.expression)
+
         elif type(node) == IfStatement:
             self.traverse(node.condition)
             new_scope = Scope("<if_statement>", self.scope.level+1, self.scope)
             self.scope = new_scope
 
-            for statement in node.block.children:
-                self.traverse(statement)
+            self.traverse(node.block)
 
             self.scope = self.scope.parent
 
             if node.else_block != None:
                 new_scope = Scope("<else_statement>", self.scope.level+1, self.scope)
                 self.scope = new_scope
-                for statement in node.else_block.children:
-                    self.traverse(statement)
+                self.traverse(node.else_block)
                 self.scope = self.scope.parent
+
+        elif type(node) == WhileStatement:
+            self.traverse(node.condition)
+            new_scope = Scope("<while_loop>", self.scope.level+1, self.scope)
+            self.scope = new_scope
+
+            self.traverse(node.block)
+
+            self.scope = self.scope.parent

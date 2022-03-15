@@ -3,10 +3,6 @@ from syntax_tree import *
 
 class Parser():
     def __init__(self):
-        """
-        or -> and -> equality -> comparison -> term -> factor
-
-        """
         self.tokens = []
         self.lexer = Lexer()
         self.token_index = -1
@@ -18,9 +14,9 @@ class Parser():
         if self.token_index < len(self.tokens): 
             self.current_token = self.tokens[self.token_index]
         else:
-            self.current_token = Token(EOF, None)
+            last_token = self.tokens[-1]
+            self.current_token = Token(EOF, None, last_token.line, last_token.column + 2)
 
-        # print(self.current_token)
 
     def peek(self) -> Token:
         if self.token_index + 1 < len(self.tokens):
@@ -151,6 +147,14 @@ class Parser():
 
         return Declare(name, value, type)
 
+    def assign(self):
+        name_node = Variable(self.current_token)
+        self.eat_token(NAME)
+        self.eat_token(ASSIGN)
+        value = self.get_expression()
+        
+        return Assign(name_node, value)
+
     def func_arg(self) -> Argument:
         arg_name = self.current_token.value
         self.eat_token(NAME)
@@ -182,7 +186,7 @@ class Parser():
         self.eat_token(PARCLOSE)
         self.eat_token(COLON)
 
-        statements = self.get_statements(END).children
+        statements = self.code_block(END)
 
         return DeclareFunc(func_name, args, statements)
 
@@ -208,19 +212,60 @@ class Parser():
         self.eat_token(PAROPEN)
         condition = self.get_expression()
         self.eat_token(PARCLOSE)
-        block = self.get_statements(ENDIF)
+        self.eat_token(COLON)
+        block = self.code_block(ENDIF)
         self.eat_token(ENDIF)
-        self.eat_token(SEPR)
+        # self.eat_token(SEPR)
         
         else_block = None
         if self.current_token.type == ELSE:
             self.eat_token(ELSE)
-            else_block = self.get_statements(ENDIF)
+            else_block = self.code_block(ENDIF)
             self.eat_token(ENDIF)
 
-        return IfStatement(condition, block, else_block)        
+        return IfStatement(condition, block, else_block)     
 
-    def get_statements(self, end_keyword) -> CodeBlock: # end keyword could be EOF, FUNCCLOSE, etc
+    def while_statement(self):
+        self.eat_token(PAROPEN)
+        condition = self.get_expression()
+        self.eat_token(PARCLOSE)
+        self.eat_token(COLON)
+
+        block = self.code_block(END)
+        self.eat_token(END)
+
+        return WhileStatement(condition, block)
+
+    def for_statement(self): # "deugars" a for loop and returns a WhileStatement instance (reads a for loop, returns a while loop)
+        self.eat_token(PAROPEN)
+
+        intializer = None
+        if self.current_token.type == TYPE:
+            initializer = self.declare_var()
+        else:
+            initializer = self.get_expression()
+        
+        self.eat_token(SEPR)
+        condition = self.get_expression()
+        
+        self.eat_token(SEPR)
+        increment = self.assign()
+
+        self.eat_token(PARCLOSE)
+        self.eat_token(COLON)
+
+        block = self.code_block(END)
+        self.eat_token(END)
+
+        # children = [initializer]
+        # children.extend(block.children)
+        # block.children = children # put the initializer up at the front
+        block.children.append(increment) # put the incrementer at the back
+
+        while_loop = WhileStatement(condition, block)
+        return CodeBlock([initializer, while_loop])
+
+    def code_block(self, end_keyword) -> CodeBlock: # end keyword could be EOF, FUNCCLOSE, etc
         tree_nodes = []
         while self.current_token.type != end_keyword:
             if self.current_token.type == TYPE:
@@ -228,11 +273,7 @@ class Parser():
 
             elif self.current_token.type == NAME:
                 if self.peek().type == ASSIGN:
-                    name_node = Variable(self.current_token)
-                    self.eat_token(NAME)
-                    self.eat_token(ASSIGN)
-                    value = self.get_expression()
-                    tree_nodes.append(Assign(name_node, value))
+                    tree_nodes.append(self.assign())
 
                 elif self.peek().type == PAROPEN: # function call
                         tree_nodes.append(self.call_function())
@@ -262,18 +303,25 @@ class Parser():
                 self.eat_token(IF)
                 tree_nodes.append(self.if_statement())
 
+            elif self.current_token.type == WHILE:
+                self.eat_token(WHILE)
+                tree_nodes.append(self.while_statement())
+
+            elif self.current_token.type == FOR:
+                self.eat_token(FOR)
+                tree_nodes.append(self.for_statement())
+
             else:
                 tree_nodes.append(self.get_expression())
 
             self.eat_token(SEPR)
 
-        block = CodeBlock([node for node in tree_nodes])
+        block = CodeBlock(tree_nodes)
         return block
 
     def parse(self) -> AbstractSyntaxTree:
-        tree = self.get_statements(EOF)
+        tree = self.code_block(EOF)
         self.eat_token(EOF)
-        print(tree.children)
         return tree
 
     def setup(self, content) -> None:
@@ -283,4 +331,9 @@ class Parser():
         self.lexer.content = content
         self.lexer.index = -1
         self.tokens = self.lexer.tokenize()
+
+        if self.tokens == []:
+            return False
+
         self.next_token()
+        return True

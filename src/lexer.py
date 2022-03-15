@@ -1,4 +1,4 @@
-PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, END, COLON, COMMA, RETURN, PRINT, IF, ENDIF, ELSE, GREATER, LESS, EQUAL, NOT, GREATER_EQUAL, LESS_EQUAL, OR, AND, NOT_EQUAL = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "END", "COLON", "COMMA", "RETURN", "PRINT", "IF", "ENDIF", "ELSE", "GREATER", "LESS", "EQUAL", "NOT", "GREATER_EQUAL", "LESS_EQUAL", "OR", "AND", "NOT_EQUAL"
+PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, END, COLON, COMMA, RETURN, PRINT, IF, ENDIF, ELSE, GREATER, LESS, EQUAL, NOT, GREATER_EQUAL, LESS_EQUAL, OR, AND, NOT_EQUAL, WHILE, FOR = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "END", "COLON", "COMMA", "RETURN", "PRINT", "IF", "ENDIF", "ELSE", "GREATER", "LESS", "EQUAL", "NOT", "GREATER_EQUAL", "LESS_EQUAL", "OR", "AND", "NOT_EQUAL", "WHILE", "FOR"
 ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
 
 # class TokenTypes(Enum):
@@ -35,7 +35,9 @@ class Lexer():
         "fi": (ENDIF, "fi"),
         "else": (ELSE, "else"),
         "or": (OR, "or"),
-        "and": (AND, "and")
+        "and": (AND, "and"),
+        "while": (WHILE, "while"),
+        "for": (FOR, "for")
       }
 
   def increment(self) -> None:
