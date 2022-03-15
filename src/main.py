@@ -1,3 +1,4 @@
+from pickletools import optimize
 from lexer import *
 from syntax_tree import *
 from parser import Parser
@@ -77,39 +78,80 @@ class Interpreter():
     self.semantic_analyzer = SemanticAnalyzer()
     self.stack = CallStack()
 
+  def is_truthy(self, obj):
+    if obj == None:
+      return False
+
+    elif type(obj) == bool:
+      return obj
+
+    return True
+
   def traverse(self, node):
     if type(node) == Number:
       return node.token.value
     
     elif type(node) == BinaryOperator:
       op_type = node.operator.type # type of operator (node.operator is a token, just accessing the type here)
+      left = self.traverse(node.left)
+      right = self.traverse(node.right)
   
       if op_type == PLUS:
-        left = self.traverse(node.left)
-        right = self.traverse(node.right)
         return left + right
       
       elif op_type == MINUS:
-        left = self.traverse(node.left)
-        right = self.traverse(node.right)
         return left - right
       
       elif op_type == MULTIPLY:
-        left = self.traverse(node.left)
-        right = self.traverse(node.right)
         return left * right
       
       elif op_type == DIVIDE:
-        left = self.traverse(node.left)
-        right = self.traverse(node.right)
         return left / right
 
+      elif op_type == GREATER:
+        return left > right
+
+      elif op_type == LESS:
+        return left < right
+
+      elif op_type == GREATER_EQUAL:
+        return left >= right
+
+      elif op_type == LESS_EQUAL:
+        return left <= right
+
+      elif op_type == NOT_EQUAL:
+        if left == None and right == None:
+          return True
+        elif left == None:
+          return False
+        return left == right
+
     elif type(node) == UnaryOperator:
+      child = self.traverse(node.child)
       if node.operator.type == PLUS:
-        return +(self.traverse(node.child))
+        return +(child)
 
       elif node.operator.type == MINUS:
-        return -(self.traverse(node.child))
+        return -(child)
+
+      elif node.operator.type == NOT:
+        return not self.is_truthy(child)
+
+    elif type(node) == Logical:
+      left = self.traverse(node.left)
+
+      if node.operator.type == OR:
+        if self.is_truthy(left):
+          return left
+
+        return self.traverse(node.right)
+      
+      elif node.operator.type == AND:
+        if not self.is_truthy(left):
+          return left # since left is not truthy, we return that to indicate the operation is falsey.
+        return self.traverse(node.right)
+        
 
     elif type(node) == Declare:
       var_name = node.name.value
@@ -150,6 +192,15 @@ class Interpreter():
 
     elif type(node) == Print:
       print(self.traverse(node.expression))
+
+    elif type(node) == IfStatement:
+      if self.is_truthy(self.traverse(node.condition)):
+        for statement in node.block.children:
+          self.traverse(statement)
+      
+      elif node.else_block != None:
+        for statement in node.block.children:
+          self.traverse(statement)
 
   def run(self, content):
     try:

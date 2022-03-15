@@ -3,6 +3,10 @@ from syntax_tree import *
 
 class Parser():
     def __init__(self):
+        """
+        or -> and -> equality -> comparison -> term -> factor
+
+        """
         self.tokens = []
         self.lexer = Lexer()
         self.token_index = -1
@@ -37,7 +41,7 @@ class Parser():
                 print(f"expected {expected_token}, found {self.current_token.type}\x1b[0m")
             quit()
 
-    def get_factor(self) -> AbstractSyntaxTree:
+    def primary(self) -> AbstractSyntaxTree:
         token = self.current_token
         if token.type == NUM:
             self.eat_token(NUM)
@@ -51,13 +55,18 @@ class Parser():
 
         elif token.type == PLUS:
             self.eat_token(PLUS)
-            factor = self.get_factor()
+            factor = self.factor()
             return UnaryOperator(operator=token, child=factor)
 
         elif token.type == MINUS:
             self.eat_token(MINUS)
-            factor = self.get_factor()
+            factor = self.factor()
             return UnaryOperator(operator=token, child=factor)
+
+        elif token.type == NOT:
+            self.eat_token(NOT)
+            factor = self.factor()
+            return UnaryOperator(token, factor)
         
         elif token.type == NAME:
             if self.peek().type == PAROPEN:
@@ -67,37 +76,68 @@ class Parser():
             return Variable(token)
 
 
-    def get_term(self) -> BinaryOperator:
-        final = self.get_factor()
+    def factor(self) -> BinaryOperator:
+        final = self.primary()
         while self.current_token.type in (MULTIPLY, DIVIDE):
             current_token = self.current_token
-
-            if current_token.type == MULTIPLY:
-                self.eat_token(MULTIPLY)
-
-            elif current_token.type == DIVIDE:
-                self.eat_token(DIVIDE)
-
-            final = BinaryOperator(current_token, final, self.get_factor())
+            self.eat_token(self.current_token.type)
+            final = BinaryOperator(current_token, final, self.primary())
 
         if final == None:
             raise SyntaxError(f"Unexpected end of expression")
         return final
 
-    def get_expression(self) -> BinaryOperator:
-        final = self.get_term()
+    def term(self) -> BinaryOperator:
+        final = self.factor()
         while self.current_token.type in (PLUS, MINUS):
             current_token = self.current_token
-
-            if current_token.type == PLUS:
-                self.eat_token(PLUS)
-
-            elif current_token.type == MINUS:
-                self.eat_token(MINUS)
-        
-            final = BinaryOperator(operator=current_token, left=final, right=self.get_term())
+            self.eat_token(self.current_token.type)  
+            final = BinaryOperator(operator=current_token, left=final, right=self.factor())
 
         return final
+
+    def comparison(self):
+        final = self.term()
+
+        while self.current_token.type in (GREATER, LESS, GREATER_EQUAL, LESS_EQUAL):
+           token = self.current_token
+           self.eat_token(self.current_token.type)
+           final = BinaryOperator(token, final, self.term()) 
+
+        return final
+
+    def equality(self):
+        final = self.comparison()
+
+        while self.current_token.type in (NOT_EQUAL, EQUAL):
+            token = self.current_token
+            self.eat_token(self.current_token.type)
+            final = BinaryOperator(token, final, self.comparison())
+
+        return final
+
+    def and_statement(self):
+        final = self.equality()
+
+        while self.current_token.type == AND:
+            token = self.current_token
+            self.eat_token(AND)
+            final = Logical(final, token, self.equality())
+
+        return final
+
+    def or_statement(self):
+        final = self.and_statement()
+
+        while self.current_token.type == OR:
+            token = self.current_token
+            self.eat_token(OR)
+            final = Logical(final, token, self.and_statement())
+        
+        return final
+
+    def get_expression(self):
+        return self.or_statement()
 
     def declare_var(self) -> Declare:
         type = self.current_token.value
@@ -142,7 +182,7 @@ class Parser():
         self.eat_token(PARCLOSE)
         self.eat_token(COLON)
 
-        statements = self.get_statements(FUNCCLOSE).children
+        statements = self.get_statements(END).children
 
         return DeclareFunc(func_name, args, statements)
 
@@ -163,11 +203,26 @@ class Parser():
         self.eat_token(PARCLOSE)
 
         return FunctionCall(name, args)
+    
+    def if_statement(self):
+        self.eat_token(PAROPEN)
+        condition = self.get_expression()
+        self.eat_token(PARCLOSE)
+        block = self.get_statements(ENDIF)
+        self.eat_token(ENDIF)
+        self.eat_token(SEPR)
+        
+        else_block = None
+        if self.current_token.type == ELSE:
+            self.eat_token(ELSE)
+            else_block = self.get_statements(ENDIF)
+            self.eat_token(ENDIF)
+
+        return IfStatement(condition, block, else_block)        
 
     def get_statements(self, end_keyword) -> CodeBlock: # end keyword could be EOF, FUNCCLOSE, etc
         tree_nodes = []
         while self.current_token.type != end_keyword:
-            # print(self.c)
             if self.current_token.type == TYPE:
                 tree_nodes.append(self.declare_var())
 
@@ -188,7 +243,7 @@ class Parser():
             elif self.current_token.type == FUNCOPEN:
                 self.eat_token(FUNCOPEN)
                 node = self.declare_func()
-                self.eat_token(FUNCCLOSE)
+                self.eat_token(END)
                 tree_nodes.append(node)
 
             elif self.current_token.type == RETURN:
@@ -197,7 +252,15 @@ class Parser():
 
             elif self.current_token.type == PRINT:
                 self.eat_token(PRINT)
-                tree_nodes.append(Print(self.get_expression()))
+                value = None
+                if self.current_token.type != SEPR:
+                    value = self.get_expression()
+
+                tree_nodes.append(Print(value))
+
+            elif self.current_token.type == IF:
+                self.eat_token(IF)
+                tree_nodes.append(self.if_statement())
 
             else:
                 tree_nodes.append(self.get_expression())
@@ -210,6 +273,7 @@ class Parser():
     def parse(self) -> AbstractSyntaxTree:
         tree = self.get_statements(EOF)
         self.eat_token(EOF)
+        print(tree.children)
         return tree
 
     def setup(self, content) -> None:

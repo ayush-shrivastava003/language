@@ -1,7 +1,9 @@
 # language
-A simple interpreter built in Python (started with a calculator, expanding soon)
+A simple interpreter built in Python. Just a fun little project to learn how to build interpreters, nothing super crazy. Once I've figured out the essentials, I'll remake it in a faster and stricter language (likely Rust or Java).
 
 Inspired by:
+
+https://craftinginterpreters.com/
 
 https://github.com/tsj845/Custom-Language-Interpreter
 

@@ -36,7 +36,7 @@ class BinaryOperator(AbstractSyntaxTree):
         # print(self.__repr__())
         
     def __repr__(self):
-        return f"BIN OP: {self.left} {self.operator.value} {self.right}"
+        return f"{self.left} {self.operator.value} {self.right}"
 
 class UnaryOperator(AbstractSyntaxTree):
     def __init__(self, operator, child):
@@ -79,7 +79,7 @@ class Declare(AbstractSyntaxTree):
         self.type = type
     
     def __repr__(self):
-        return f"DECLARE: '{self.type} {self.name.value} = {self.value}'"
+        return f"'{self.type} {self.name.value} = {self.value}'"
 
 class Argument(AbstractSyntaxTree):
     def __init__(self, name, type):
@@ -97,7 +97,7 @@ class DeclareFunc(AbstractSyntaxTree):
         # self.symbol = symbol
     
     def __repr__(self):
-        return f"function '{self.name}' with args {self.args}"
+        return f"fn {self.name}({', '.join(self.args)})"
 
 class FunctionCall(AbstractSyntaxTree):
     def __init__(self, name, args, symbol=None):
@@ -106,7 +106,7 @@ class FunctionCall(AbstractSyntaxTree):
         self.symbol = symbol
     
     def __repr__(self) -> str:
-        return f"'{self.name}' with the given args {self.args}"
+        return f"{self.name}({', '.join(self.args)})"
 
 class Return(AbstractSyntaxTree):
     def __init__(self, statement):
@@ -115,3 +115,24 @@ class Return(AbstractSyntaxTree):
 class Print(AbstractSyntaxTree):
     def __init__(self, expression):
         self.expression = expression
+
+    def __repr__(self) -> str:
+        return f"print {self.expression}"
+
+class IfStatement(AbstractSyntaxTree):
+    def __init__(self, condition, block, else_block=None):
+        self.condition = condition
+        self.block = block
+        self.else_block = else_block
+
+    def __repr__(self):
+        return f"if ({self.condition}) | else {bool(self.else_block)}"
+
+class Logical(AbstractSyntaxTree):
+    def __init__(self, left, operator, right):
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+    def __repr__(self) -> str:
+        return f"{self.left} OR {self.right}"

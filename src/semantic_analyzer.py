@@ -179,6 +179,20 @@ class SemanticAnalyzer():
 
         elif type(node) == Return:
             self.traverse(node.statement)
-  
-    def analyze(self, tree):
-        pass
+
+        elif type(node) == IfStatement:
+            self.traverse(node.condition)
+            new_scope = Scope("<if_statement>", self.scope.level+1, self.scope)
+            self.scope = new_scope
+
+            for statement in node.block.children:
+                self.traverse(statement)
+
+            self.scope = self.scope.parent
+
+            if node.else_block != None:
+                new_scope = Scope("<else_statement>", self.scope.level+1, self.scope)
+                self.scope = new_scope
+                for statement in node.else_block.children:
+                    self.traverse(statement)
+                self.scope = self.scope.parent

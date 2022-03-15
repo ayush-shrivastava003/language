@@ -1,4 +1,4 @@
-PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, FUNCCLOSE, COLON, COMMA, RETURN, PRINT = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "FUNCCLOSE", "COLON", "COMMA", "RETURN", "PRINT"
+PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, END, COLON, COMMA, RETURN, PRINT, IF, ENDIF, ELSE, GREATER, LESS, EQUAL, NOT, GREATER_EQUAL, LESS_EQUAL, OR, AND, NOT_EQUAL = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "END", "COLON", "COMMA", "RETURN", "PRINT", "IF", "ENDIF", "ELSE", "GREATER", "LESS", "EQUAL", "NOT", "GREATER_EQUAL", "LESS_EQUAL", "OR", "AND", "NOT_EQUAL"
 ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
 
 # class TokenTypes(Enum):
@@ -28,9 +28,14 @@ class Lexer():
       self.keywords = {
         "num": (TYPE, NUM),
         "fn": (FUNCOPEN, "fn"),
-        "end": (FUNCCLOSE, "end"),
+        "end": (END, "end"),
         "return": (RETURN, "return"),
-        "print": (PRINT, "print")
+        "print": (PRINT, "print"),
+        "if": (IF, "if"),
+        "fi": (ENDIF, "fi"),
+        "else": (ELSE, "else"),
+        "or": (OR, "or"),
+        "and": (AND, "and")
       }
 
   def increment(self) -> None:
@@ -44,6 +49,11 @@ class Lexer():
   def decrement(self) -> None:
     self.index -= 1
     self.char = self.content[self.index]
+
+  def peek(self):
+    if self.index + 1 > len(self.content):
+      return None
+    return self.content[self.index + 1]
 
   def line_and_column(self): # the gods at stack overflow have saved me again
     sub_str = self.content[:self.index+1]
@@ -100,6 +110,11 @@ class Lexer():
         tokens.append(self.get_word(line, column))
 
       elif self.char == "=":
+        if self.peek() == "=":
+          tokens.append(Token(EQUAL, "==", line, column))
+          self.increment()
+          self.increment()
+          continue
         tokens.append(Token(ASSIGN, "=", line, column))
         # return
 
@@ -127,6 +142,30 @@ class Lexer():
 
       elif self.char == ",":
         tokens.append(Token(COMMA, ",", line, column))
+
+      elif self.char == ">":
+        if self.peek() == "=":
+          tokens.append(Token(GREATER_EQUAL, ">=", line, column))
+          self.increment()
+          self.increment()
+          continue
+        tokens.append(Token(GREATER, ">", line, column))
+
+      elif self.char == "<":
+        if self.peek() == "=":
+          tokens.append(Token(LESS_EQUAL, "<=", line, column))
+          self.increment()
+          self.increment()
+          continue
+        tokens.append(Token(LESS, "<", line, column))
+
+      elif self.char == "!":
+        if self.peek() == "=":
+          tokens.append(Token(NOT_EQUAL, "!=", line, column))
+          self.increment()
+          self.increment()
+          continue
+        tokens.append(Token(NOT, "!", line, column))
 
       else:
         x = self.char.replace('\n', '\\n').replace('\t', '\\t')
