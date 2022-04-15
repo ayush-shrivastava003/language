@@ -103,31 +103,31 @@ class Interpreter():
       left = self.traverse(node.left)
       right = self.traverse(node.right)
   
-      if op_type == PLUS:
+      if op_type == TokenType.PLUS:
         return left + right
       
-      elif op_type == MINUS:
+      elif op_type == TokenType.MINUS:
         return left - right
       
-      elif op_type == MULTIPLY:
+      elif op_type == TokenType.MULTIPLY:
         return left * right
       
-      elif op_type == DIVIDE:
+      elif op_type == TokenType.DIVIDE:
         return left / right
 
-      elif op_type == GREATER:
+      elif op_type == TokenType.GREATER:
         return left > right
 
-      elif op_type == LESS:
+      elif op_type == TokenType.LESS:
         return left < right
 
-      elif op_type == GREATER_EQUAL:
+      elif op_type == TokenType.GREATER_EQUAL:
         return left >= right
 
-      elif op_type == LESS_EQUAL:
+      elif op_type == TokenType.LESS_EQUAL:
         return left <= right
 
-      elif op_type == NOT_EQUAL:
+      elif op_type == TokenType.NOT_EQUAL:
         if left == None and right == None:
           return True
         elif left == None:
@@ -136,25 +136,25 @@ class Interpreter():
 
     elif type(node) == UnaryOperator:
       child = self.traverse(node.child)
-      if node.operator.type == PLUS:
+      if node.operator.type == TokenType.PLUS:
         return +(child)
 
-      elif node.operator.type == MINUS:
+      elif node.operator.type == TokenType.MINUS:
         return -(child)
 
-      elif node.operator.type == NOT:
+      elif node.operator.type == TokenType.NOT:
         return not self.is_truthy(child)
 
     elif type(node) == Logical:
       left = self.traverse(node.left)
 
-      if node.operator.type == OR:
+      if node.operator.type == TokenType.OR:
         if self.is_truthy(left):
           return left
 
         return self.traverse(node.right)
       
-      elif node.operator.type == AND:
+      elif node.operator.type == TokenType.AND:
         if not self.is_truthy(left):
           return left # since left is not truthy, we return that to indicate the operation is falsey.
         return self.traverse(node.right)

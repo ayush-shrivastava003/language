@@ -1,2 +1,7 @@
 src/__pycache__/
 .replit
+target/
+
+# Added by cargo
+
+/target

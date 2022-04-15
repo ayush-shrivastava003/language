@@ -1,10 +1,44 @@
-PLUS, MINUS, MULTIPLY, DIVIDE, NUM, PAROPEN, PARCLOSE, ASSIGN, NAME, EOF, SEPR, TYPE, FUNCOPEN, END, COLON, COMMA, RETURN, PRINT, IF, ENDIF, ELSE, GREATER, LESS, EQUAL, NOT, GREATER_EQUAL, LESS_EQUAL, OR, AND, NOT_EQUAL, WHILE, FOR = "PLUS", "MINUS", "MULTIPLY", "DIVIDE", "NUM", "PAROPEN", "PARCLOSE", "ASSIGN", "NAME", "EOF", "SEPR", "TYPE", "FUNCOPEN", "END", "COLON", "COMMA", "RETURN", "PRINT", "IF", "ENDIF", "ELSE", "GREATER", "LESS", "EQUAL", "NOT", "GREATER_EQUAL", "LESS_EQUAL", "OR", "AND", "NOT_EQUAL", "WHILE", "FOR"
-ops = {"+": PLUS, "-": MINUS, "*": MULTIPLY, "/": DIVIDE}
+from enum import Enum
 
-# class TokenTypes(Enum):
-#   PLUS = "PLUS"
-#   MINUS = "MINUS"
-#   MULTIPLY = "M"
+class TokenType(Enum):
+  PLUS = "PLUS"
+  MINUS = "MINUS"
+  MULTIPLY = "MULTIPLY"
+  DIVIDE = "DIVIDE"
+  NUM = "NUM"
+  PAROPEN = "PAROPEN"
+  PARCLOSE = "PARCLOSE"
+  ASSIGN = "ASSIGN"
+  NAME = "NAME"
+  EOF = "EOF"
+  SEPR = "SEPR"
+  TYPE = "TYPE"
+  FUNCOPEN = "FUNCTOPEN"
+  END = "END"
+  COLON = "COLON"
+  COMMA = "COMMA"
+  RETURN = "RETURN"
+  PRINT = "PRINT"
+  IF = "IF"
+  ENDIF = "ENDIF"
+  ELSE = "ELSE"
+  GREATER = "GREATER"
+  LESS = "LESS"
+  EQUAL = "EQUAL"
+  NOT = "NOT"
+  GREATER_EQUAL = "GREATER_EQUAL"
+  LESS_EQUAL = "LESS_EQUAL"
+  OR = "OR"
+  AND = "AND"
+  NOT_EQUAL = "NOT_EQUAL"
+  WHILE = "WHILE"
+  FOR = "FOR"
+  DECL = "DECL"
+  TERNARY = "TERNARY"
+  INCREMENT = "INCEMENT"
+  DECREMENT = "DECREMENT"
+
+ops = {"+": TokenType.PLUS, "-": TokenType.MINUS, "*": TokenType.MULTIPLY, "/": TokenType.DIVIDE}
 
 class Token():
   def __init__(self, type, value, line=1, column=1):
@@ -26,18 +60,19 @@ class Lexer():
       self.index = -1
       self.char = self.content[self.index]
       self.keywords = {
-        "num": (TYPE, NUM),
-        "fn": (FUNCOPEN, "fn"),
-        "end": (END, "end"),
-        "return": (RETURN, "return"),
-        "print": (PRINT, "print"),
-        "if": (IF, "if"),
-        "fi": (ENDIF, "fi"),
-        "else": (ELSE, "else"),
-        "or": (OR, "or"),
-        "and": (AND, "and"),
-        "while": (WHILE, "while"),
-        "for": (FOR, "for")
+        "num": (TokenType.TYPE, TokenType.NUM),
+        "fn": (TokenType.FUNCOPEN, "fn"),
+        "end": (TokenType.END, "end"),
+        "return": (TokenType.RETURN, "return"),
+        "print": (TokenType.PRINT, "print"),
+        "if": (TokenType.IF, "if"),
+        "fi": (TokenType.ENDIF, "fi"),
+        "else": (TokenType.ELSE, "else"),
+        "or": (TokenType.OR, "or"),
+        "and": (TokenType.AND, "and"),
+        "while": (TokenType.WHILE, "while"),
+        "for": (TokenType.FOR, "for"),
+        "let": (TokenType.DECL, "let")
       }
 
   def increment(self) -> None:
@@ -53,7 +88,7 @@ class Lexer():
     self.char = self.content[self.index]
 
   def peek(self):
-    if self.index + 1 > len(self.content):
+    if self.index + 1 > len(self.content) - 1:
       return None
     return self.content[self.index + 1]
 
@@ -94,7 +129,7 @@ class Lexer():
       token_data = self.keywords[final]
       return Token(token_data[0], token_data[1], line, column)
     else:
-      return Token(NAME, final, line, column)
+      return Token(TokenType.NAME, final, line, column)
 
   def tokenize(self) -> list:
     tokens = []
@@ -106,72 +141,99 @@ class Lexer():
 
       elif self.char.isdigit():
         num = self.get_num()
-        tokens.append(Token(NUM, num, line, column))
+        tokens.append(Token(TokenType.NUM, num, line, column))
 
       elif self.char.isalpha():
         tokens.append(self.get_word(line, column))
 
       elif self.char == "=":
         if self.peek() == "=":
-          tokens.append(Token(EQUAL, "==", line, column))
+          tokens.append(Token(TokenType.EQUAL, "==", line, column))
           self.increment()
           self.increment()
           continue
-        tokens.append(Token(ASSIGN, "=", line, column))
+        tokens.append(Token(TokenType.ASSIGN, "=", line, column))
         # return
 
       elif self.char in ("+", "-", "*", "/"):
+        if self.char == "/":
+
+          if self.peek() == "/":
+            self.increment()
+            self.increment()
+            print(self.char)
+            while self.char != "\n":
+              self.increment()
+            continue
+    
+          # elif self.peek() == "*":
+          #   self.increment()
+          #   self.increment()
+          #   while self.char != "*" and self.peek() != "/": # TODO: fix block comments
+          #     self.increment()
+          #   self.increment()
+          #   self.increment()
+          #   continue
+        elif self.char == "+":
+          if self.peek() == "+":
+            self.increment()
+            self.increment()
+            tokens.append(Token(TokenType.INCREMENT, "++", line, column))
+            continue
+
+        elif self.char == "-":
+          if self.peek() == "-":
+            self.increment()
+            self.increment()
+            tokens.append(Token(TokenType.DECREMENT, "--", line, column))
+            continue
         tokens.append(Token(ops[self.char], self.char, line, column))
 
       elif self.char == "(":
-        tokens.append(Token(PAROPEN, "(", line, column))
+        tokens.append(Token(TokenType.PAROPEN, "(", line, column))
 
       elif self.char == ")":
-        tokens.append(Token(PARCLOSE, ")", line, column))
+        tokens.append(Token(TokenType.PARCLOSE, ")", line, column))
 
       elif self.char == ";":
-        tokens.append(Token(SEPR, ";", line, column))
+        tokens.append(Token(TokenType.SEPR, ";", line, column))
 
       elif self.char == "?":
-        self.increment()
-        while self.char != "?":
-            self.increment()
-
-        self.increment()
+        tokens.append(Token(TokenType.TERNARY, "?"))
 
       elif self.char == ":":
-        tokens.append(Token(COLON, ":", line, column))
+        tokens.append(Token(TokenType.COLON, ":", line, column))
 
       elif self.char == ",":
-        tokens.append(Token(COMMA, ",", line, column))
+        tokens.append(Token(TokenType.COMMA, ",", line, column))
 
       elif self.char == ">":
         if self.peek() == "=":
-          tokens.append(Token(GREATER_EQUAL, ">=", line, column))
+          tokens.append(Token(TokenType.GREATER_EQUAL, ">=", line, column))
           self.increment()
           self.increment()
           continue
-        tokens.append(Token(GREATER, ">", line, column))
+        tokens.append(Token(TokenType.GREATER, ">", line, column))
 
       elif self.char == "<":
         if self.peek() == "=":
-          tokens.append(Token(LESS_EQUAL, "<=", line, column))
+          tokens.append(Token(TokenType.LESS_EQUAL, "<=", line, column))
           self.increment()
           self.increment()
           continue
-        tokens.append(Token(LESS, "<", line, column))
+        tokens.append(Token(TokenType.LESS, "<", line, column))
 
       elif self.char == "!":
         if self.peek() == "=":
-          tokens.append(Token(NOT_EQUAL, "!=", line, column))
+          tokens.append(Token(TokenType.NOT_EQUAL, "!=", line, column))
           self.increment()
           self.increment()
           continue
-        tokens.append(Token(NOT, "!", line, column))
+        tokens.append(Token(TokenType.NOT, "!", line, column))
 
       else:
         x = self.char.replace('\n', '\\n').replace('\t', '\\t')
-        print(f"\x1b[31munrecognized character '{x}'\x1b[0m")
+        print(f"\x1b[31munrecognized character '{x}' @ {line, column}\x1b[0m")
         return []
       
       # tokens[-1].line, tokens[-1].column = line, column

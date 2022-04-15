@@ -1,17 +1,14 @@
-? Taken from https://craftinginterpreters.com ?
-? Although simple, this program shows just how excruciatingly slow the Python interpreter is. ?
+// Taken from https://craftinginterpreters.com
+// Although simple, this program shows just how excruciatingly slow the Python interpreter is.
 
-fn fib(n: num):
-    ? print n; ?
+fn fib(n):
     if (n <= 1):
         return n;
     fi;
-
     return fib(n - 2) + fib(n - 1);
 end;
 
-for (num i = 0; i <= 50; i = i + 1):
-    print;
+for (let i = 0; i < 20; i++):
     print i;
     print fib(i);
 end;

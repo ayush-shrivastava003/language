@@ -66,6 +66,7 @@ class Assign(AbstractSyntaxTree):
 class Variable(AbstractSyntaxTree):
     def __init__(self, token):
         self.token = token
+        self.symbol = None
         # self.token = value
         # print(self.__repr__())
 
@@ -73,21 +74,20 @@ class Variable(AbstractSyntaxTree):
         return f"{self.token.value}"
 
 class Declare(AbstractSyntaxTree):
-    def __init__(self, name, value, type):
+    def __init__(self, name, value):
         self.name = name
         self.value = value
-        self.type = type
     
     def __repr__(self):
-        return f"'{self.type} {self.name.value} = {self.value}'"
+        return f"{self.name} = {self.value}'"
 
 class Argument(AbstractSyntaxTree):
-    def __init__(self, name, type):
+    def __init__(self, name):
         self.name = name
-        self.type = type
+        # self.type = type
 
     def __repr__(self):
-        return f"{self.name}: {self.type}"
+        return f"Argument({type(self.name)})"
 
 class DeclareFunc(AbstractSyntaxTree):
     def __init__(self, name, args, statements):
@@ -97,7 +97,7 @@ class DeclareFunc(AbstractSyntaxTree):
         # self.symbol = symbol
     
     def __repr__(self):
-        return f"fn {self.name}({', '.join(self.args)})"
+        return f"fn {self.name}({', '.join([str(arg) for arg in self.args])})"
 
 class FunctionCall(AbstractSyntaxTree):
     def __init__(self, name, args, symbol=None):
@@ -106,7 +106,8 @@ class FunctionCall(AbstractSyntaxTree):
         self.symbol = symbol
     
     def __repr__(self) -> str:
-        return f"{self.name}({', '.join(self.args)})"
+        # print([type(arg) for arg in self.args])
+        return f"fn {self.name}({', '.join([str(arg) for arg in self.args])})"
 
 class Return(AbstractSyntaxTree):
     def __init__(self, statement):

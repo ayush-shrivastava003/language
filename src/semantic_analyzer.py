@@ -71,7 +71,7 @@ class Scope():
             "vars": self.vars,
             "functions": self.functions
         }
-        self.data["types"].symbols = {"NUM": TypeSymbol(NUM)}
+        self.data["types"].symbols = {"NUM": TypeSymbol(TokenType.NUM)}
 
     def __repr__(self):
         parent_name = self.parent.name if self.parent != None else "N/A"
