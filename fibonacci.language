@@ -1,5 +1,6 @@
 // Taken from https://craftinginterpreters.com
 // Although simple, this program shows just how excruciatingly slow the Python interpreter is.
+// Also, this has been a helpful test for debugging scoping, as proper scoping is crucial to recursion.
 
 fn fib(n):
     if (n <= 1):
@@ -8,6 +9,6 @@ fn fib(n):
     return fib(n - 2) + fib(n - 1);
 end;
 
-for (let i = 0; i < 20; i++):
+for (let i = 20; i > 0; i--):
     print fib(i);
 end;

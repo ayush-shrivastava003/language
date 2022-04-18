@@ -63,8 +63,8 @@ class SemanticAnalyzer():
             scope: dict = self.scopes[-1]
             is_defined = scope.get(node.token.value)
 
-            if not len(self.scopes) and not is_defined:
-                raise Exception(f"'{node.name.value}' cannot be read in its own declaration.")
+            if len(self.scopes) and is_defined == False:
+                raise Exception(f"'{node.token.value}' cannot be read in its own declaration.")
             self.resolve_local(node, node.token.value)
 
         elif type(node) == Assign:

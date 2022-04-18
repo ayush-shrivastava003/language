@@ -1,8 +1,9 @@
+let a = a;
+
 fn joe():
-    let x = 20;
-    print x;
-    return 10;
+    let b = 20;
 end;
 
-let x = joe();
-print x;
+print a;
+joe();
+print b;

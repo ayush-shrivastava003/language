@@ -23,13 +23,9 @@ class Interpreter():
     self.depths[expr] = depth
 
   def lookup(self, name, expr):
-    distance = self.depths[expr]
-    # if not distance:
-    #   print("lookup GLOBAL: get", name, "at distance", distance)
-    #   return self.global_environment.get(name)
-    # else:
-    #   print("lookup: get", name, "at distance:", distance)
-    #   return self.environment.get(name, distance=distance)
+    distance = self.depths.get(expr)
+    if distance is None:
+      raise Exception(f"Unkown name '{name}'")
     return self.environment.get(name, distance=distance)
 
   def define(self, name, value):
