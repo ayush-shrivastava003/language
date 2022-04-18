@@ -33,7 +33,6 @@ class BinaryOperator(AbstractSyntaxTree):
         self.operator = operator
         self.left = left
         self.right = right
-        # print(self.__repr__())
         
     def __repr__(self):
         return f"{self.left} {self.operator.value} {self.right}"
@@ -42,7 +41,6 @@ class UnaryOperator(AbstractSyntaxTree):
     def __init__(self, operator, child):
         self.operator = operator
         self.child = child # token that the unary operator is modifying
-        # print(self.__repr__())
 
     def __repr__(self):
         return f"{self.operator}{self.child}"
@@ -50,7 +48,6 @@ class UnaryOperator(AbstractSyntaxTree):
 class Number(AbstractSyntaxTree):
     def __init__(self, token):
         self.token = token
-        # print(self.__repr__)
     
     def __repr__(self):
         return f"{self.token.value}"
@@ -61,14 +58,12 @@ class Assign(AbstractSyntaxTree):
         self.value = value
 
     def __repr__(self):
-        return f"{self.name} = {self.value}"
+        return f"{self.name.value} = {self.value}"
 
 class Variable(AbstractSyntaxTree):
     def __init__(self, token):
         self.token = token
         self.symbol = None
-        # self.token = value
-        # print(self.__repr__())
 
     def __repr__(self):
         return f"{self.token.value}"
@@ -79,7 +74,7 @@ class Declare(AbstractSyntaxTree):
         self.value = value
     
     def __repr__(self):
-        return f"{self.name} = {self.value}'"
+        return f"{self.name.value} = {self.value}'"
 
 class Argument(AbstractSyntaxTree):
     def __init__(self, name):
@@ -97,7 +92,7 @@ class DeclareFunc(AbstractSyntaxTree):
         # self.symbol = symbol
     
     def __repr__(self):
-        return f"fn {self.name}({', '.join([str(arg) for arg in self.args])})"
+        return f"fn {self.name.value}({len(self.args)} argument(s))"
 
 class FunctionCall(AbstractSyntaxTree):
     def __init__(self, name, args, symbol=None):
@@ -106,12 +101,14 @@ class FunctionCall(AbstractSyntaxTree):
         self.symbol = symbol
     
     def __repr__(self) -> str:
-        # print([type(arg) for arg in self.args])
-        return f"fn {self.name}({', '.join([str(arg) for arg in self.args])})"
+        return f"{self.name.value}({', '.join([str(arg) for arg in self.args])})"
 
 class Return(AbstractSyntaxTree):
     def __init__(self, statement):
         self.statement = statement
+
+    def __repr__(self) -> str:
+        return f"return {self.statement}"
 
 class Print(AbstractSyntaxTree):
     def __init__(self, expression):

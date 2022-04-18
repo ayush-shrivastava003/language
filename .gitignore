@@ -1,7 +1,6 @@
 src/__pycache__/
 .replit
-target/
-
+src/java/*.class
 # Added by cargo
 
 /target
