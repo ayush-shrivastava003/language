@@ -1,85 +1,38 @@
-from pickletools import optimize
 from lexer import *
 from syntax_tree import *
 from parser import Parser
 from semantic_analyzer import SemanticAnalyzer
+from environment import Environment
+from function_obj import *
+from call_stack import *
 import sys
 import readline # cursor navigation in python input
 
 _version = "0.1"
 
-class ReturnException(Exception):
-  """
-  this exception is raised once we hit a return statement. 
-  it allows the interpreter to jump back several layers of nesting to reach the function call.
-  """
-  def __init__(self, value, *args: object):
-      super().__init__(*args)
-      self.value = value
-
-class StackFrame():
-  def __init__(self, name, type, level):
-    """
-    represents a single frame in the call stack.
-    """
-    self.name = name
-    self.type = type
-    self.level = level
-    self.data = {}
-
-  def __setitem__(self, key, value):
-    """
-    builtin function by python that allows easy modifications to the `StackFrame.data` dictionary.
-    """
-    self.data[key] = value
-
-  def __getitem__(self, key):
-    return self.data.get(key)
-
-  def __repr__(self):
-    content = "CONTENT:\n" + ("="*8)
-    for key, value in self.data.items():
-      content += f"\n{key} ({type(key)}) : {value}"
-    return f"{self.type} {self.name} @ stack level {self.level}\n{content}"
-
-class CallStack():
-  def __init__(self):
-    """
-    represents the interpreter's call stack. adds a "frame" to the stack when new code is executed (i.e functions),
-    and removes them when they're done.
-    """
-    self.frames = []
-
-  def __repr__(self):
-    frames = '\n'.join(reversed(self.frames))
-    return f"Call Stack:\n{frames}"
-
-  def push(self, frame):
-    """
-    push a new frame onto the call stack.
-    """
-    self.frames.append(frame)
-  
-  def pull(self):
-    """
-    remove the topmost frame from the call stack.
-    """
-    self.frames.pop()
-  
-  def show_frame(self):
-    """
-    return the frame currently executing in the stack (the topmost one)
-    """
-    return self.frames[-1]
-
-  def level(self):
-    return self.show_frame().level + 1
-
 class Interpreter():
   def __init__(self):
     self.parser = Parser()
-    self.semantic_analyzer = SemanticAnalyzer()
+    self.semantic_analyzer = SemanticAnalyzer(self)
     self.stack = CallStack()
+    self.global_environment = Environment()
+    self.environment = self.global_environment
+    self.depths = {}
+
+  def resolve(self, expr, depth):
+    self.depths[expr] = depth
+
+  def lookup(self, name, expr):
+    distance = self.depths.get(expr)
+    if distance is None:
+      raise Exception(f"Unkown name '{name}'")
+    return self.environment.get(name, distance=distance)
+
+  def define(self, name, value):
+    if self.environment:
+      self.environment.assign(name, value)
+    else:
+      self.global_environment.assign(name, value)
 
   def is_truthy(self, obj):
     if obj == None:
@@ -90,19 +43,26 @@ class Interpreter():
 
     return True
 
+  def traverse_block(self, node, environment):
+    old = self.environment
+    try:
+      self.environment = environment
+      for statement in node.children:
+        self.traverse(statement)
+    finally:
+      self.environment = old
+
   def traverse(self, node):
     if type(node) == Number:
       return node.token.value
     
     elif type(node) == CodeBlock:
-      for statement in node.children:
-        self.traverse(statement)
+      self.traverse_block(node, Environment(self.environment))
 
     elif type(node) == BinaryOperator:
-      op_type = node.operator.type # type of operator (node.operator is a token, just accessing the type here)
+      op_type = node.operator # type of operator (node.operator is a token, just accessing the type here)
       left = self.traverse(node.left)
       right = self.traverse(node.right)
-  
       if op_type == TokenType.PLUS:
         return left + right
       
@@ -162,39 +122,29 @@ class Interpreter():
     elif type(node) == Declare:
       var_name = node.name.value
       var_value = self.traverse(node.value)
-      frame = self.stack.show_frame()
-      frame[var_name] = var_value
+      self.environment.assign(var_name, var_value)
       return var_value
 
     elif type(node) == Variable:
-      return self.stack.show_frame()[node.token.value]
+      return self.lookup(node.token.value, node)
 
     elif type(node) == Assign:
-        var_name = node.name.token.value
+        var_name = node.name
         var_value = self.traverse(node.value)
-        frame = self.stack.show_frame()
-        frame[var_name] = var_value
+        distance = self.depths[var_name]
+        if not distance:
+          self.global_environment.assign(var_name.token.value, var_value)
+        else:
+          self.environment.assign(var_name.token.value, var_value, distance=distance)
         return var_value
 
     elif type(node) == FunctionCall:
-      frame = StackFrame(node.name, "FUNCTION", self.stack.level())
-
-      expected_args = node.symbol.args
-      passed_args = node.args
-      return_value = None
-
-      for arg_name, arg_value in zip(expected_args, passed_args):
-          frame[arg_name.name] = self.traverse(arg_value)
-
-      self.stack.push(frame)
-      try:
-        self.traverse(node.symbol.statements)
-
-      except ReturnException as e:
-        return_value = e.value
-
-      self.stack.pull()
-      return return_value
+      function: Function = self.global_environment.get(node.name.value)
+      # function: Function = self.lookup(node.name.value, node)
+      args = []
+      for arg in node.args:
+        args.append(self.traverse(arg))
+      return function.call(self, args)
 
     elif type(node) == Return:
       raise ReturnException(self.traverse(node.statement))
@@ -210,25 +160,29 @@ class Interpreter():
         self.traverse(node.block)
       
       elif node.else_block != None:
-        self.traverse(node.block)
+        self.traverse(node.else_block)
 
     elif type(node) == WhileStatement:
       while self.is_truthy(self.traverse(node.condition)):
         self.traverse(node.block)
 
+    elif type(node) == DeclareFunc:
+      function = Function(node)
+      self.environment.assign(node.name.value, function)
+
   def run(self, content):
     try:
       if self.parser.setup(content):
         tree = self.parser.parse()
-        self.semantic_analyzer.traverse(tree)
+        self.semantic_analyzer.resolve(tree)
 
         frame = StackFrame("PROGRAM", "PROGRAM", 1)
         self.stack.push(frame)
-        self.traverse(tree)
+        self.traverse_block(tree, self.global_environment)
         self.stack.pull()
     
     except Exception as e:
-      print("\x1b[0m")
+      print(f"\x1b[31m{e}\x1b[0m")
       raise e
 
   def run_shell(self):
@@ -244,10 +198,7 @@ class Interpreter():
         if content.isspace() or content == "":
           continue
         
-        result = self.run(content)
-
-        if result != [None]:
-          print(result)
+        self.run(content)
 
       except KeyboardInterrupt:
         print("\nbye")
@@ -261,6 +212,7 @@ if len(sys.argv) >= 2:
     quit()
   
   try:
+    i.parser.filename = sys.argv[1]
     with open(sys.argv[1]) as f:
      i.run(f.read())
   except FileNotFoundError:

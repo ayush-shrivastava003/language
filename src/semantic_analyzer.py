@@ -1,212 +1,112 @@
-"""
-the semantic analyzer examines the syntax tree before the interpreter does. any unkown variables, bad typing, etc are checked here.
-"""
 from lexer import *
 from syntax_tree import *
 
-class Symbol():
-    def __init__(self, name, type=None):
-        self.name = name
-        self.type = type
-
-class VariableSymbol(Symbol):
-    def __init__(self, name, type):
-        super().__init__(name, type)
-
-    def __repr__(self):
-        return f"VariableSymbol(name: {self.name}, type: {self.type})"
-
-class TypeSymbol(Symbol):
-    def __init__(self, name):
-        super().__init__(name)
-
-    def __repr__(self):
-        return f"TypeSymbol(name: {self.name})"
-
-class FunctionSymbol(Symbol):
-    def __init__(self, name, statements, args=None, return_statement=None):
-        super().__init__(name)
-        self.args = [] if args == None else args
-        self.statements = statements
-        self.return_statement = return_statement
-    
-    def __repr__(self):
-        return f"FunctionSymbol(name: {self.name}, args: {self.args})"
-
-class SymbolTable():
-    def __init__(self):
-        """
-        symbol table for a specific scope (global, function scope, etc)
-        """
-        self.symbols = {}
-
-    def add_symbol(self, symbol):
-        self.symbols[symbol.name] = symbol
-
-    def lookup(self, name):
-        symbol = self.symbols.get(name)
-
-        return symbol
-
-    def __repr__(self):
-        g = '\n'.join([f"{name}: {value}" for name, value in self.symbols.items()])
-        return f"SYMBOLS:\n{g}\n"
-
-class Scope():
-    def __init__(self, name, level, parent=None):
-        """
-        single class to hold multiple symbol tables for a scope.
-        made in order to have vars/functions have the same name and prevent confusion.
-        """
-        self.name = name
-        self.level = level
-        self.parent = parent # refers to the scope surrounding the current one (e.g a function's scope's parent would be the global scope)
-
-        self.types = SymbolTable()
-        self.vars = SymbolTable()
-        self.functions = SymbolTable()
-
-        self.data = {
-            "types": self.types,
-            "vars": self.vars,
-            "functions": self.functions
-        }
-        self.data["types"].symbols = {"NUM": TypeSymbol(TokenType.NUM)}
-
-    def __repr__(self):
-        parent_name = self.parent.name if self.parent != None else "N/A"
-        return f"""
-        
-        SCOPE {self.name}
-        PARENT: {parent_name}
-
-        CONTENT
-        =======
-        TYPES: {self.types.symbols}
-        VARS: {self.vars.symbols}
-        FUNCTIONS: {self.functions.symbols}
-
-        """
-
-    def lookup(self, name, category):
-        symbol = self.data[category].lookup(name)
-        if symbol != None:
-            return symbol
-
-        if self.parent != None:
-            symbol = self.parent.lookup(name, category)
-            return symbol
-    
-    def add_symbol(self, symbol, category):
-        symbol.level = self.level
-        self.data[category].add_symbol(symbol)
-
 class SemanticAnalyzer():
-    def __init__(self):
-        self.scope = Scope('global', 0)
-        self.global_scope = self.scope
+    def __init__(self, interpreter):
+        self.scopes = []
+        self.interpreter = interpreter
 
-    def traverse(self, node) -> None:
-        if type(node) == Number:
-            pass
+    def begin_scope(self):
+        self.scopes.append({})
 
-        elif type(node) == CodeBlock:
-            for statement in node.children:
-                self.traverse(statement)
+    def end_scope(self):
+        self.scopes.pop()
 
-        elif type(node) == BinaryOperator:
-            # not returning operations because we just want to verify types.
-            # it's the interpreter's job to evaluate the operations.
-            self.traverse(node.left)
-            self.traverse(node.right)
+    def declare(self, name: str):
+        """
+        Indicate that a name has begun the binding process,
+        but is not yet finished.
+        """
+        if not len(self.scopes): return
+        scope = self.scopes[-1]
+        scope[name] = False
+
+    def define(self, name: str):
+        """
+        Indicate that a name has finished the binding process.
+        The name can now be used elsewhere in the program.
+        """
+        if not len(self.scopes): return
+        scope = self.scopes[-1]
+        scope[name] = True
+
+    def resolve_local(self, expr: AbstractSyntaxTree, name: Token):
+        for scope in reversed(self.scopes):
+            if name in scope.keys():
+                distance = len(self.scopes) - 1 - self.scopes.index(scope)
+                self.interpreter.resolve(expr, distance)
+
+    def resolve_block(self, block):
+        for statement in block.children:
+            self.resolve(statement)
+
+    def resolve(self, node):
+        if type(node) == CodeBlock:
+            self.begin_scope()
+            self.resolve_block(node)
+            self.end_scope()
+
+        elif type(node) in (BinaryOperator, Logical):
+            self.resolve(node.left)
+            self.resolve(node.right)
 
         elif type(node) == UnaryOperator:
-            self.traverse(node.child)
+            self.resolve(node.child)
 
         elif type(node) == Declare:
-            node_type = self.scope.lookup(node.type, "types")
-
-            if node_type == None:
-                raise Exception(f"unrecognized type {node.type}")
-
-            self.traverse(node.value) # verify that we know everything about the value
-
             name = node.name.value
-
-            if self.scope.lookup(name, "vars") != None:
-                raise Exception("variable already declared:", name)
-
-            var = VariableSymbol(name, node_type)
-            self.scope.add_symbol(var, "vars")
-
-        elif type(node) == Assign:
-            self.traverse(node.name)
-            self.traverse(node.value)
+            self.declare(name)
+            self.resolve(node.value)
+            self.define(name)
 
         elif type(node) == Variable:
-            name = node.token.value
-            symbol = self.scope.lookup(name, "vars")
+            scope: dict = self.scopes[-1]
+            is_defined = scope.get(node.token.value)
 
-            if symbol == None:
-                raise Exception(f"unkown variable {name}", node.token)
+            if len(self.scopes) and is_defined == False:
+                raise Exception(f"'{node.token.value}' cannot be read in its own declaration.")
+            self.resolve_local(node, node.token.value)
+
+        elif type(node) == Assign:
+            self.resolve(node.value)
+            self.resolve_local(node, node.name)
 
         elif type(node) == DeclareFunc:
-            function_name =  node.name
-            if self.scope.lookup(function_name, "functions") == None:
-                _symbol = FunctionSymbol(function_name, node.statements)
-                
-                self.scope.add_symbol(_symbol, "functions")
-                new_scope = Scope(function_name, self.scope.level+1, self.global_scope)
-                self.scope = new_scope
+            self.declare(node.name.value)
+            self.define(node.name.value)
 
-                for arg in node.args:
-                    arg_symbol = VariableSymbol(arg.name, arg.type)
-                    self.scope.add_symbol(arg_symbol, "vars")
+            self.begin_scope()
+            for arg in node.args:
+                self.declare(arg.name)
+                self.define(arg.name)
+            self.resolve_block(node.statements)
+            self.resolve_local(node, node.name.value)
+            self.end_scope()
 
-                    _symbol.args.append(arg_symbol)
+        elif type(node) in (BinaryOperator, Logical):
+            self.resolve(node.left)
+            self.resolve(node.right)
 
-                self.traverse(node.statements)
-                self.scope = self.scope.parent
-            else:
-                raise Exception("function already declared")
-
-        elif type(node) == FunctionCall:
-            symbol = self.scope.lookup(node.name, "functions")
-            if symbol == None:
-                raise Exception(f"unkown function '{node.name}'")
-            
-            elif len(node.args) != len(symbol.args):
-                raise Exception(f"wanted {len(symbol.args)} argument(s), got {len(node.args)}")
-            
-            node.symbol = symbol
-            [self.traverse(arg) for arg in node.args]
-
-        elif type(node) == Return:
-            self.traverse(node.statement)
-
-        elif type(node) == Print:
-            self.traverse(node.expression)
+        elif type(node) == UnaryOperator:
+            self.resolve(node.child)
 
         elif type(node) == IfStatement:
-            self.traverse(node.condition)
-            new_scope = Scope("<if_statement>", self.scope.level+1, self.scope)
-            self.scope = new_scope
+            self.resolve(node.condition)
+            self.resolve(node.block)
+            if node.else_block:
+                self.resolve(node.else_block)
 
-            self.traverse(node.block)
+        elif type(node) == Print:
+            self.resolve(node.expression)
 
-            self.scope = self.scope.parent
-
-            if node.else_block != None:
-                new_scope = Scope("<else_statement>", self.scope.level+1, self.scope)
-                self.scope = new_scope
-                self.traverse(node.else_block)
-                self.scope = self.scope.parent
+        elif type(node) == Return:
+            self.resolve(node.statement)
 
         elif type(node) == WhileStatement:
-            self.traverse(node.condition)
-            new_scope = Scope("<while_loop>", self.scope.level+1, self.scope)
-            self.scope = new_scope
+            self.resolve(node.condition)
+            self.resolve(node.block)
 
-            self.traverse(node.block)
-
-            self.scope = self.scope.parent
+        elif type(node) == FunctionCall:
+            self.resolve(node.name)
+            for arg in node.args:
+                self.resolve(arg)
