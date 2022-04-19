@@ -48,7 +48,7 @@ class CallStack():
     """
     self.frames.pop()
   
-  def show_frame(self, level=None):
+  def show_frame(self):
     """
     return the frame currently executing in the stack (the topmost one)
     """

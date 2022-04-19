@@ -4,16 +4,24 @@ class Environment():
         self.values = {}
 
     def __repr__(self):
-        return f"{self.values}"
+        return "".join([f"{key} ({type(key)}): {value}" for key, value in self.values.items()])
 
     # def define(self, value):
     #     self.values.append(value)
 
     def get(self, name, distance=None):
+        print("vals:", self)
+        value = None
         if distance:
-            return self.ancestor(distance).values[name]
+             value = self.ancestor(distance).values.get(name)
+             print(value, "from ancestor")
         else:
-            return self.values[name]
+             value = self.values.get(name)
+             print(value, "from me", self)
+
+        if value is None:
+            raise Exception(f"Unkown name '{name}'")  
+        return value
 
     def ancestor(self, distance):
         environment = self

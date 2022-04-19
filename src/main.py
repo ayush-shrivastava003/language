@@ -24,6 +24,7 @@ class Interpreter():
 
   def lookup(self, name, expr):
     distance = self.depths.get(expr)
+    print(expr, type(expr), distance)
     if distance is None:
       raise Exception(f"Unkown name '{name}'")
     return self.environment.get(name, distance=distance)
@@ -139,7 +140,8 @@ class Interpreter():
         return var_value
 
     elif type(node) == FunctionCall:
-      function: Function = self.global_environment.get(node.name.value)
+      print(self.depths)
+      function: Function = self.lookup(node.name.token.value, node.name)
       # function: Function = self.lookup(node.name.value, node)
       args = []
       for arg in node.args:
@@ -168,18 +170,21 @@ class Interpreter():
 
     elif type(node) == DeclareFunc:
       function = Function(node)
-      self.environment.assign(node.name.value, function)
+      self.environment.assign(node.name.token.value, function)
+
+  def walk(self, node):
+    print(node)
 
   def run(self, content):
     try:
       if self.parser.setup(content):
         tree = self.parser.parse()
-        self.semantic_analyzer.resolve(tree)
+        self.semantic_analyzer.resolve_block(tree)
 
-        frame = StackFrame("PROGRAM", "PROGRAM", 1)
-        self.stack.push(frame)
+        # frame = StackFrame("PROGRAM", "PROGRAM", 1)
+        # self.stack.push(frame)
         self.traverse_block(tree, self.global_environment)
-        self.stack.pull()
+        # self.stack.pull()
     
     except Exception as e:
       print(f"\x1b[31m{e}\x1b[0m")

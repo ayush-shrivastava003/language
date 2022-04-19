@@ -162,7 +162,8 @@ class Lexer():
             self.increment()
             self.increment()
             print(self.char)
-            while self.char != "\n":
+            while self.char and self.char != "\n":
+              print(self.char)
               self.increment()
             continue
     

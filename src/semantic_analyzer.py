@@ -3,7 +3,7 @@ from syntax_tree import *
 
 class SemanticAnalyzer():
     def __init__(self, interpreter):
-        self.scopes = []
+        self.scopes = [{}]
         self.interpreter = interpreter
 
     def begin_scope(self):
@@ -32,6 +32,7 @@ class SemanticAnalyzer():
 
     def resolve_local(self, expr: AbstractSyntaxTree, name: Token):
         for scope in reversed(self.scopes):
+            print(scope)
             if name in scope.keys():
                 distance = len(self.scopes) - 1 - self.scopes.index(scope)
                 self.interpreter.resolve(expr, distance)
@@ -72,15 +73,15 @@ class SemanticAnalyzer():
             self.resolve_local(node, node.name)
 
         elif type(node) == DeclareFunc:
-            self.declare(node.name.value)
-            self.define(node.name.value)
+            self.declare(node.name.token.value)
+            self.define(node.name.token.value)
 
             self.begin_scope()
             for arg in node.args:
                 self.declare(arg.name)
                 self.define(arg.name)
             self.resolve_block(node.statements)
-            self.resolve_local(node, node.name.value)
+            self.resolve_local(node.name, node.name.token.value)
             self.end_scope()
 
         elif type(node) in (BinaryOperator, Logical):

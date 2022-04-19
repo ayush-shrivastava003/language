@@ -1,9 +1,8 @@
-let a = a;
-
-fn joe():
-    let b = 20;
+fn john():
+    fn doe(name):
+        print name;
+    end;
+    doe(40);
 end;
 
-print a;
-joe();
-print b;
+john();

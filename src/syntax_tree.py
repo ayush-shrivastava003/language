@@ -92,7 +92,7 @@ class DeclareFunc(AbstractSyntaxTree):
         # self.symbol = symbol
     
     def __repr__(self):
-        return f"fn {self.name.value}({len(self.args)} argument(s))"
+        return f"fn {self.name}({len(self.args)} argument(s))"
 
 class FunctionCall(AbstractSyntaxTree):
     def __init__(self, name, args, symbol=None):
@@ -101,7 +101,7 @@ class FunctionCall(AbstractSyntaxTree):
         self.symbol = symbol
     
     def __repr__(self) -> str:
-        return f"{self.name.value}({', '.join([str(arg) for arg in self.args])})"
+        return f"{self.name}({', '.join([str(arg) for arg in self.args])})"
 
 class Return(AbstractSyntaxTree):
     def __init__(self, statement):

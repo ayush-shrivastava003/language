@@ -133,8 +133,21 @@ class Parser():
         
         return final
 
+    def ternary(self):
+        condition = self.or_statement()
+        if self.current_token.type == TokenType.TERNARY:
+            self.eat_token(TokenType.TERNARY)
+
+            true_block = self.or_statement()
+            self.eat_token(TokenType.COLON)
+            false_block = self.or_statement()
+
+            return IfStatement(condition, true_block, false_block)
+        
+        return condition
+
     def get_expression(self):
-        return self.or_statement()
+        return self.ternary()
 
     def declare_var(self) -> Declare:
         self.eat_token(TokenType.DECL)
@@ -189,7 +202,7 @@ class Parser():
         return args
 
     def declare_func(self) -> DeclareFunc:
-        func_name = self.current_token
+        func_name = Variable(self.current_token)
         self.eat_token(TokenType.NAME)
         self.eat_token(TokenType.PAROPEN)
 
@@ -202,13 +215,13 @@ class Parser():
         return DeclareFunc(func_name, args, statements)
 
     def call_function(self) -> FunctionCall:
-        TokenType.name = self.current_token
+        name = Variable(self.current_token)
         self.eat_token(TokenType.NAME)
         self.eat_token(TokenType.PAROPEN)
         
         if self.current_token.type == TokenType.PARCLOSE:
             self.eat_token(TokenType.PARCLOSE)
-            return FunctionCall(TokenType.name, [])
+            return FunctionCall(name, [])
 
         args = [self.get_expression()]
 
@@ -217,7 +230,7 @@ class Parser():
             args.append(self.get_expression())
         self.eat_token(TokenType.PARCLOSE)
 
-        return FunctionCall(TokenType.name, args)
+        return FunctionCall(name, args)
     
     def if_statement(self):
         self.eat_token(TokenType.PAROPEN)
