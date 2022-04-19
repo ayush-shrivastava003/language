@@ -24,7 +24,6 @@ class Interpreter():
 
   def lookup(self, name, expr):
     distance = self.depths.get(expr)
-    print(expr, type(expr), distance)
     if distance is None:
       raise Exception(f"Unkown name '{name}'")
     return self.environment.get(name, distance=distance)
@@ -140,7 +139,6 @@ class Interpreter():
         return var_value
 
     elif type(node) == FunctionCall:
-      print(self.depths)
       function: Function = self.lookup(node.name.token.value, node.name)
       # function: Function = self.lookup(node.name.value, node)
       args = []
@@ -171,9 +169,6 @@ class Interpreter():
     elif type(node) == DeclareFunc:
       function = Function(node)
       self.environment.assign(node.name.token.value, function)
-
-  def walk(self, node):
-    print(node)
 
   def run(self, content):
     try:

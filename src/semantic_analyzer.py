@@ -32,7 +32,6 @@ class SemanticAnalyzer():
 
     def resolve_local(self, expr: AbstractSyntaxTree, name: Token):
         for scope in reversed(self.scopes):
-            print(scope)
             if name in scope.keys():
                 distance = len(self.scopes) - 1 - self.scopes.index(scope)
                 self.interpreter.resolve(expr, distance)

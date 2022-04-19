@@ -10,14 +10,11 @@ class Environment():
     #     self.values.append(value)
 
     def get(self, name, distance=None):
-        print("vals:", self)
         value = None
         if distance:
              value = self.ancestor(distance).values.get(name)
-             print(value, "from ancestor")
         else:
              value = self.values.get(name)
-             print(value, "from me", self)
 
         if value is None:
             raise Exception(f"Unkown name '{name}'")  

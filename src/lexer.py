@@ -161,9 +161,7 @@ class Lexer():
           if self.peek() == "/":
             self.increment()
             self.increment()
-            print(self.char)
             while self.char and self.char != "\n":
-              print(self.char)
               self.increment()
             continue
     
