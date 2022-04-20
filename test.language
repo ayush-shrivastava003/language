@@ -1,8 +1,10 @@
 fn john():
     fn doe(name):
         print name;
+        return name;
     end;
-    doe(40);
+    return doe;
 end;
 
-john();
+let d = john();
+print jo(;

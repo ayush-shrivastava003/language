@@ -13,6 +13,10 @@ class Function():
     def __init__(self, expr):
         self.expr = expr
 
+    def __repr__(self):
+        name = self.expr.name.token
+        return f"<fn {name.value} at {name.line}:{name.column}>"
+
     def call(self, interpreter, args):
         environment = Environment(interpreter.global_environment)
 

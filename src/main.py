@@ -5,6 +5,7 @@ from semantic_analyzer import SemanticAnalyzer
 from environment import Environment
 from function_obj import *
 from call_stack import *
+from error import *
 import sys
 import readline # cursor navigation in python input
 
@@ -18,14 +19,16 @@ class Interpreter():
     self.global_environment = Environment()
     self.environment = self.global_environment
     self.depths = {}
+    self.is_shell = True
+    self.filename = None
 
   def resolve(self, expr, depth):
     self.depths[expr] = depth
 
   def lookup(self, name, expr):
     distance = self.depths.get(expr)
-    if distance is None:
-      raise Exception(f"Unkown name '{name}'")
+    # if distance is None:
+    #   raise Exception(f"Unkown name '{name}'")
     return self.environment.get(name, distance=distance)
 
   def define(self, name, value):
@@ -139,11 +142,16 @@ class Interpreter():
         return var_value
 
     elif type(node) == FunctionCall:
-      function: Function = self.lookup(node.name.token.value, node.name)
-      # function: Function = self.lookup(node.name.value, node)
+      function: Function = self.traverse(node.name)
+      if type(function) != Function:
+        raise Error(f"Only functions are callable.")
       args = []
       for arg in node.args:
         args.append(self.traverse(arg))
+
+      if len(args) != len(function.expr.args):
+        raise Exception(f"Wanted {len(function.expr.args)} argument(s), got {len(args)} instead.")
+      
       return function.call(self, args)
 
     elif type(node) == Return:
@@ -181,14 +189,25 @@ class Interpreter():
         self.traverse_block(tree, self.global_environment)
         # self.stack.pull()
     
-    except Exception as e:
-      print(f"\x1b[31m{e}\x1b[0m")
-      raise e
+    except Error as e:
+      print(f"\x1b[31mError at line {e.line}, column {e.column}")
+      msg = None
+      if self.is_shell:
+        msg = [content]
+        msg.append("\n" + " " * (e.column-1) + "^")
+      else:
+        with open(self.filename, "r") as f:
+          lines = f.readlines()
+          msg = [lines[e.line - 1]]
+          msg.append(f'\n{" " * (e.column - 1)}^')
+
+      msg.append(f"\n{e.msg}\x1b[0m")
+      print(" ".join(msg))
 
   def run_shell(self):
     print(f"\x1b[32mShell version {_version}")
     print("Supported operators: +, -, *, /, ()")
-    print("Type \"exit\" or hit ^C to exit.")
+    print("Type \"exit\" or hit ^C to exit.\x1b[0m")
     while True:
       try:
         content = input(">\x1b[0m ")
@@ -208,13 +227,14 @@ i = Interpreter()
 
 if len(sys.argv) >= 2:
   if sys.argv[1] == "--eval":
-    print(i.run(sys.argv[2]))
+    i.run(sys.argv[2])
     quit()
   
   try:
-    i.parser.filename = sys.argv[1]
+    i.is_shell = False
+    i.filename = sys.argv[1]
     with open(sys.argv[1]) as f:
-     i.run(f.read())
+      i.run(f.read())
   except FileNotFoundError:
     print(f"\x1b[31mfile does not exist: '{sys.argv[1]}'\x1b[0m")
 

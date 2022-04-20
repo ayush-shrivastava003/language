@@ -1,5 +1,6 @@
 from lexer import *
 from syntax_tree import *
+from error import *
 
 class SemanticAnalyzer():
     def __init__(self, interpreter):
@@ -64,7 +65,7 @@ class SemanticAnalyzer():
             is_defined = scope.get(node.token.value)
 
             if len(self.scopes) and is_defined == False:
-                raise Exception(f"'{node.token.value}' cannot be read in its own declaration.")
+                raise Error(f"'{node.token.value}' cannot be read in its own declaration.", node.token)
             self.resolve_local(node, node.token.value)
 
         elif type(node) == Assign:

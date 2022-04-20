@@ -1,5 +1,6 @@
 from lexer import *
 from syntax_tree import *
+from error import *
 
 class Parser():
     def __init__(self):
@@ -25,100 +26,114 @@ class Parser():
         else:
             return Token(TokenType.EOF, None)
 
-    def eat_token(self, expected_token) -> None:
+    def eat_token(self, expected_token, error) -> None:
         if self.current_token.type == expected_token:
             self.next_token()
         else:
-            print(f"\x1b[31mSyntax error at line {self.current_token.line}, column {self.current_token.column}\n")
-            with open(self.filename, "r") as f:
-                lines = f.readlines()
-                msg = [lines[self.current_token.line - 1]]
-                msg.append(f'\n{" " * (self.current_token.column - 1)}^')
-                msg.append(f"\nexpected {expected_token}, found {self.current_token.type}\x1b[0m")
-                msg = " ".join(msg)
-                raise Exception(msg)
+            raise Error(error, self.current_token)
 
     def primary(self) -> AbstractSyntaxTree:
         token = self.current_token
         if token.type == TokenType.NUM:
-            self.eat_token(TokenType.NUM)
+            self.eat_token(TokenType.NUM, "")
             return Number(token)
 
         elif token.type == TokenType.PAROPEN:
-            self.eat_token(TokenType.PAROPEN)
+            self.eat_token(TokenType.PAROPEN, "")
             final = self.get_expression()
-            self.eat_token(TokenType.PARCLOSE)
+            self.eat_token(TokenType.PARCLOSE, "Expected \")\" to expression wrapped in parentheses.")
             return final
+        
+        elif token.type == TokenType.NAME:
+            self.eat_token(TokenType.NAME, "")
+            var = Variable(token)
+            return var
+    
+    def call_function(self) -> FunctionCall:
+        expr = self.primary()
+        while self.current_token.type == TokenType.PAROPEN:
+            self.eat_token(TokenType.PAROPEN, "")
+            
+            if self.current_token.type == TokenType.PARCLOSE:
+                self.eat_token(TokenType.PARCLOSE, "")
+                expr = FunctionCall(expr, [])
 
-        elif token.type == TokenType.PLUS:
-            self.eat_token(TokenType.PLUS)
-            factor = self.factor()
+            else:
+                args = [self.get_expression()] 
+
+                while self.current_token.type == TokenType.COMMA:
+                    self.eat_token(TokenType.COMMA, "")
+                    args.append(self.get_expression())
+                self.eat_token(TokenType.PARCLOSE, "Expected closing parenthesis to function call.")
+                expr = FunctionCall(expr, args)
+
+        return expr
+
+    def unary(self):
+        token = self.current_token
+        if token.type == TokenType.PLUS:
+            self.eat_token(TokenType.PLUS, "")
+            factor = self.primary()
             return UnaryOperator(operator=token, child=factor)
 
         elif token.type == TokenType.MINUS:
-            self.eat_token(TokenType.MINUS)
-            factor = self.factor()
+            self.eat_token(TokenType.MINUS, "")
+            factor = self.primary()
             return UnaryOperator(operator=token, child=factor)
 
         elif token.type == TokenType.NOT:
-            self.eat_token(TokenType.NOT)
-            factor = self.factor()
+            self.eat_token(TokenType.NOT, "")
+            factor = self.primary()
             return UnaryOperator(token, factor)
-        
-        elif token.type == TokenType.NAME:
-            if self.peek().type == TokenType.PAROPEN:
-                return self.call_function()
-            
-            self.eat_token(TokenType.NAME)
-            var = Variable(token)
-            return var
+
+        val = self.call_function()
+        if val is None:
+            raise Error(f"Unexpected end of expression.", self.current_token)
+        return val
 
     def factor(self) -> BinaryOperator:
-        final = self.primary()
+        final = self.unary()
         while self.current_token.type in (TokenType.MULTIPLY, TokenType.DIVIDE):
             current_token = self.current_token
-            self.eat_token(self.current_token.type)
-            final = BinaryOperator(current_token.type, final, self.primary())
+            self.eat_token(self.current_token.type, "")
+            final = BinaryOperator(current_token.type, final, self.unary())
 
-        if final == None:
-            raise SyntaxError(f"Unexpected end of expression " + str(self.current_token))
+        # if final == None:
+        #     raise Error(f"Unexpected end of expression.", self.current_token)
         return final
 
     def term(self) -> BinaryOperator:
         final = self.factor()
         while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
             current_token = self.current_token
-            self.eat_token(self.current_token.type)  
+            self.eat_token(self.current_token.type, "")  
             final = BinaryOperator(operator=current_token.type, left=final, right=self.factor())
-
+        print("final 4 term:", final)
         return final
 
     def comparison(self):
         final = self.term()
-
         while self.current_token.type in (TokenType.GREATER, TokenType.LESS, TokenType.GREATER_EQUAL, TokenType.LESS_EQUAL):
            token = self.current_token
-           self.eat_token(self.current_token.type)
+           self.eat_token(self.current_token.type, "")
            final = BinaryOperator(token.type, final, self.term()) 
 
         return final
 
     def equality(self):
         final = self.comparison()
-
         while self.current_token.type in (TokenType.NOT_EQUAL, TokenType.EQUAL):
             token = self.current_token
-            self.eat_token(self.current_token.type)
+            self.eat_token(self.current_token.type, "")
             final = BinaryOperator(token.type, final, self.comparison())
 
         return final
 
     def and_statement(self):
         final = self.equality()
-
         while self.current_token.type == TokenType.AND:
             token = self.current_token
-            self.eat_token(TokenType.AND)
+            self.eat_token(TokenType.AND, "")
             final = Logical(final, token, self.equality())
 
         return final
@@ -128,18 +143,18 @@ class Parser():
 
         while self.current_token.type == TokenType.OR:
             token = self.current_token
-            self.eat_token(TokenType.OR)
+            self.eat_token(TokenType.OR, "")
             final = Logical(final, token, self.and_statement())
         
         return final
 
-    def ternary(self):
+    def ternary(self): # desugared if statement: (condition) ? value_if_true : value_if_false
         condition = self.or_statement()
         if self.current_token.type == TokenType.TERNARY:
             self.eat_token(TokenType.TERNARY)
 
             true_block = self.or_statement()
-            self.eat_token(TokenType.COLON)
+            self.eat_token(TokenType.COLON, "Expected \":\" in a ternary expression.")
             false_block = self.or_statement()
 
             return IfStatement(condition, true_block, false_block)
@@ -150,43 +165,43 @@ class Parser():
         return self.ternary()
 
     def declare_var(self) -> Declare:
-        self.eat_token(TokenType.DECL)
+        self.eat_token(TokenType.DECL, "Expected \"let\" present in variable declaration.")
 
         name = self.current_token
-        self.eat_token(TokenType.NAME)
+        self.eat_token(TokenType.NAME, "Expected a name when declaring a variable.")
 
-        self.eat_token(TokenType.ASSIGN)
+        self.eat_token(TokenType.ASSIGN, "Expected \"=\" in a variable declaration.")
         value = self.get_expression()
 
         return Declare(name, value)
 
     def assign(self):
         name_node = Variable(self.current_token)
-        self.eat_token(TokenType.NAME)
+        self.eat_token(TokenType.NAME, "Expected a name in variable assignment.")
 
         if self.current_token.type == TokenType.INCREMENT:
-            self.eat_token(TokenType.INCREMENT)
+            self.eat_token(TokenType.INCREMENT, "")
             left = name_node
             right = Token(TokenType.NUM, 1, self.current_token.line, self.current_token.column)
             right = Number(right)
             expr = BinaryOperator(TokenType.PLUS, left, right)
             return Assign(name_node, expr)
         elif self.current_token.type == TokenType.DECREMENT:
-            self.eat_token(TokenType.DECREMENT)
+            self.eat_token(TokenType.DECREMENT, "")
             left = name_node
             right = Token(TokenType.NUM, 1, self.current_token.line, self.current_token.column)
             right = Number(right)
             expr = BinaryOperator(TokenType.MINUS, left, right)
             return Assign(name_node, expr)
 
-        self.eat_token(TokenType.ASSIGN)
+        self.eat_token(TokenType.ASSIGN, "Expected \"=\" when assigning a variable.")
         value = self.get_expression()
         
         return Assign(name_node, value)
 
     def func_arg(self) -> Argument:
         arg_name = self.current_token.value
-        self.eat_token(TokenType.NAME)
+        self.eat_token(TokenType.NAME, "Expected a name for a function argument.")
         return Argument(arg_name)
 
     def get_func_args(self) -> list:
@@ -196,56 +211,38 @@ class Parser():
         args = [self.func_arg()]
 
         while self.current_token.type == TokenType.COMMA:
-            self.eat_token(TokenType.COMMA)
+            self.eat_token(TokenType.COMMA, "")
             args.append(self.func_arg())
 
         return args
 
     def declare_func(self) -> DeclareFunc:
         func_name = Variable(self.current_token)
-        self.eat_token(TokenType.NAME)
-        self.eat_token(TokenType.PAROPEN)
+        self.eat_token(TokenType.NAME, "Expected a name when declaring a function.")
+        self.eat_token(TokenType.PAROPEN, "Expected a set of parentheses after function name.")
 
         args = self.get_func_args()
-        self.eat_token(TokenType.PARCLOSE)
-        self.eat_token(TokenType.COLON)
+        self.eat_token(TokenType.PARCLOSE, "Expected closing parenthesis after argument list.")
+        self.eat_token(TokenType.COLON, "Expected colon after parentheses.")
 
         statements = self.code_block(TokenType.END)
 
         return DeclareFunc(func_name, args, statements)
-
-    def call_function(self) -> FunctionCall:
-        name = Variable(self.current_token)
-        self.eat_token(TokenType.NAME)
-        self.eat_token(TokenType.PAROPEN)
-        
-        if self.current_token.type == TokenType.PARCLOSE:
-            self.eat_token(TokenType.PARCLOSE)
-            return FunctionCall(name, [])
-
-        args = [self.get_expression()]
-
-        while self.current_token == TokenType.COMMA:
-            self.eat_token(TokenType.COMMA)
-            args.append(self.get_expression())
-        self.eat_token(TokenType.PARCLOSE)
-
-        return FunctionCall(name, args)
     
     def if_statement(self):
-        self.eat_token(TokenType.PAROPEN)
+        self.eat_token(TokenType.PAROPEN, "Expected a set of parenthesis for condition.")
         condition = self.get_expression()
-        self.eat_token(TokenType.PARCLOSE)
-        self.eat_token(TokenType.COLON)
+        self.eat_token(TokenType.PARCLOSE, "Expected closing parenthesis for condition.")
+        self.eat_token(TokenType.COLON, "Expected a colon after the condition.")
         block = self.code_block(TokenType.ENDIF)
-        self.eat_token(TokenType.ENDIF)
+        self.eat_token(TokenType.ENDIF, "Expected a \"fi\" keyword after if statement.")
         # self.eat_token(SEPR)
         
         else_block = None
         if self.current_token.type == TokenType.ELSE:
-            self.eat_token(TokenType.ELSE)
+            self.eat_token(TokenType.ELSE, "")
             else_block = self.code_block(TokenType.ENDIF)
-            self.eat_token(TokenType.ENDIF)
+            self.eat_token(TokenType.ENDIF, "")
 
         return IfStatement(condition, block, else_block)     
 
@@ -295,24 +292,21 @@ class Parser():
                 if self.peek().type in (TokenType.ASSIGN, TokenType.INCREMENT, TokenType.DECREMENT):
                     tree_nodes.append(self.assign())
 
-                elif self.peek().type == TokenType.PAROPEN: # function call
-                        tree_nodes.append(self.call_function())
-
                 else:
                     tree_nodes.append(self.get_expression())
 
             elif self.current_token.type == TokenType.FUNCOPEN:
-                self.eat_token(TokenType.FUNCOPEN)
+                self.eat_token(TokenType.FUNCOPEN, "")
                 node = self.declare_func()
-                self.eat_token(TokenType.END)
+                self.eat_token(TokenType.END, "")
                 tree_nodes.append(node)
 
             elif self.current_token.type == TokenType.RETURN:
-                self.eat_token(TokenType.RETURN)
+                self.eat_token(TokenType.RETURN, "")
                 tree_nodes.append(Return(self.get_expression()))
 
             elif self.current_token.type == TokenType.PRINT:
-                self.eat_token(TokenType.PRINT)
+                self.eat_token(TokenType.PRINT, "")
                 value = ""
                 if self.current_token.type != TokenType.SEPR:
                     value = self.get_expression()
@@ -320,28 +314,28 @@ class Parser():
                 tree_nodes.append(Print(value))
 
             elif self.current_token.type == TokenType.IF:
-                self.eat_token(TokenType.IF)
+                self.eat_token(TokenType.IF, "")
                 tree_nodes.append(self.if_statement())
 
             elif self.current_token.type == TokenType.WHILE:
-                self.eat_token(TokenType.WHILE)
+                self.eat_token(TokenType.WHILE, "")
                 tree_nodes.append(self.while_statement())
 
             elif self.current_token.type == TokenType.FOR:
-                self.eat_token(TokenType.FOR)
+                self.eat_token(TokenType.FOR, "")
                 tree_nodes.append(self.for_statement())
 
             else:
                 tree_nodes.append(self.get_expression())
 
-            self.eat_token(TokenType.SEPR)
+            self.eat_token(TokenType.SEPR, "Expected statement separator (\";\").")
 
         block = CodeBlock(tree_nodes)
         return block
 
     def parse(self) -> AbstractSyntaxTree:
         tree = self.code_block(TokenType.EOF)
-        self.eat_token(TokenType.EOF)
+        self.eat_token(TokenType.EOF, "")
         return tree
 
     def setup(self, content) -> None:
