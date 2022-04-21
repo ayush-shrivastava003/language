@@ -56,7 +56,7 @@ class Interpreter():
       self.environment = old
 
   def traverse(self, node):
-    if type(node) == Number:
+    if type(node) == Literal:
       return node.token.value
     
     elif type(node) == CodeBlock:
@@ -90,12 +90,19 @@ class Interpreter():
       elif op_type == TokenType.LESS_EQUAL:
         return left <= right
 
-      elif op_type == TokenType.NOT_EQUAL:
+      elif op_type == TokenType.EQUAL:
         if left == None and right == None:
           return True
         elif left == None:
           return False
         return left == right
+      
+      elif op_type == TokenType.NOT_EQUAL:
+        if left == None and right == None:
+          return False
+        elif left == None:
+          return True
+        return left != right
 
     elif type(node) == UnaryOperator:
       child = self.traverse(node.child)

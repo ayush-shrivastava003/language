@@ -1,4 +1,5 @@
 from enum import Enum
+from error import Error
 
 class TokenType(Enum):
   PLUS = "PLUS"
@@ -6,6 +7,8 @@ class TokenType(Enum):
   MULTIPLY = "MULTIPLY"
   DIVIDE = "DIVIDE"
   NUM = "NUM"
+  STRING = "STRING"
+  BOOL = "BOOL"
   PAROPEN = "PAROPEN"
   PARCLOSE = "PARCLOSE"
   ASSIGN = "ASSIGN"
@@ -48,7 +51,6 @@ class Token():
     self.column = column
 
   def __str__(self):
-    # with open()
     return f"Token({self.type}, {self.value} @ {self.line}:{self.column})"
 
   def __repr__(self):
@@ -72,7 +74,9 @@ class Lexer():
         "and": (TokenType.AND, "and"),
         "while": (TokenType.WHILE, "while"),
         "for": (TokenType.FOR, "for"),
-        "let": (TokenType.DECL, "let")
+        "let": (TokenType.DECL, "let"),
+        "true": (TokenType.BOOL, True),
+        "false": (TokenType.BOOL, False)
       }
 
   def increment(self) -> None:
@@ -115,7 +119,7 @@ class Lexer():
     else:
       return int(final)
 
-  def get_word(self, line, column) -> Token:
+  def get_word(self) -> Token:
     final = ""
 
     while self.char != None and (self.char.isalnum() or self.char == "_"):
@@ -125,6 +129,7 @@ class Lexer():
     self.decrement()
 
     # token = Token(self.keywords[final] if final in self.keywords.keys() else Token(NAME, final)
+    line, column = self.line_and_column()
     if final in self.keywords.keys():
       token_data = self.keywords[final]
       return Token(token_data[0], token_data[1], line, column)
@@ -144,7 +149,7 @@ class Lexer():
         tokens.append(Token(TokenType.NUM, num, line, column))
 
       elif self.char.isalpha():
-        tokens.append(self.get_word(line, column))
+        tokens.append(self.get_word())
 
       elif self.char == "=":
         if self.peek() == "=":
@@ -229,6 +234,15 @@ class Lexer():
           self.increment()
           continue
         tokens.append(Token(TokenType.NOT, "!", line, column))
+
+      elif self.char == "\"":
+        self.increment()
+        string = ""
+        while self.char != "\"":
+          string += self.char
+          self.increment()
+        tokens.append(Token(TokenType.STRING, string, line, column))
+      
 
       else:
         x = self.char.replace('\n', '\\n').replace('\t', '\\t')

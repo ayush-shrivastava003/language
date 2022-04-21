@@ -34,14 +34,14 @@ class Parser():
 
     def primary(self) -> AbstractSyntaxTree:
         token = self.current_token
-        if token.type == TokenType.NUM:
-            self.eat_token(TokenType.NUM, "")
-            return Number(token)
+        if token.type in (TokenType.NUM, TokenType.STRING, TokenType.BOOL):
+            self.eat_token(token.type, "")
+            return Literal(token)
 
         elif token.type == TokenType.PAROPEN:
             self.eat_token(TokenType.PAROPEN, "")
             final = self.get_expression()
-            self.eat_token(TokenType.PARCLOSE, "Expected \")\" to expression wrapped in parentheses.")
+            self.eat_token(TokenType.PARCLOSE, "Expected \")\" for expression wrapped in parentheses.")
             return final
         
         elif token.type == TokenType.NAME:
@@ -108,7 +108,6 @@ class Parser():
             current_token = self.current_token
             self.eat_token(self.current_token.type, "")  
             final = BinaryOperator(operator=current_token.type, left=final, right=self.factor())
-        print("final 4 term:", final)
         return final
 
     def comparison(self):
@@ -183,14 +182,14 @@ class Parser():
             self.eat_token(TokenType.INCREMENT, "")
             left = name_node
             right = Token(TokenType.NUM, 1, self.current_token.line, self.current_token.column)
-            right = Number(right)
+            right = Literal(right)
             expr = BinaryOperator(TokenType.PLUS, left, right)
             return Assign(name_node, expr)
         elif self.current_token.type == TokenType.DECREMENT:
             self.eat_token(TokenType.DECREMENT, "")
             left = name_node
             right = Token(TokenType.NUM, 1, self.current_token.line, self.current_token.column)
-            right = Number(right)
+            right = Literal(right)
             expr = BinaryOperator(TokenType.MINUS, left, right)
             return Assign(name_node, expr)
 
@@ -327,7 +326,7 @@ class Parser():
 
             else:
                 tree_nodes.append(self.get_expression())
-
+            
             self.eat_token(TokenType.SEPR, "Expected statement separator (\";\").")
 
         block = CodeBlock(tree_nodes)

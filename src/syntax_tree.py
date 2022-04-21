@@ -45,7 +45,7 @@ class UnaryOperator(AbstractSyntaxTree):
     def __repr__(self):
         return f"{self.operator}{self.child}"
 
-class Number(AbstractSyntaxTree):
+class Literal(AbstractSyntaxTree):
     def __init__(self, token):
         self.token = token
     
