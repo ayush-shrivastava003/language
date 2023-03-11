@@ -58,7 +58,7 @@ class Assign(AbstractSyntaxTree):
         self.value = value
 
     def __repr__(self):
-        return f"{self.name.value} = {self.value}"
+        return f"{self.name} = {self.value}"
 
 class Variable(AbstractSyntaxTree):
     def __init__(self, token):
@@ -74,7 +74,7 @@ class Declare(AbstractSyntaxTree):
         self.value = value
     
     def __repr__(self):
-        return f"{self.name.value} = {self.value}'"
+        return f"{self.name.value} = {self.value}"
 
 class Argument(AbstractSyntaxTree):
     def __init__(self, name):
@@ -104,8 +104,9 @@ class FunctionCall(AbstractSyntaxTree):
         return f"{self.name}({', '.join([str(arg) for arg in self.args])})"
 
 class Return(AbstractSyntaxTree):
-    def __init__(self, statement):
+    def __init__(self, statement, token):
         self.statement = statement
+        self.token = token
 
     def __repr__(self) -> str:
         return f"return {self.statement}"
@@ -142,3 +143,37 @@ class WhileStatement(AbstractSyntaxTree):
 
     def __repr__(self):
         return f"while ({self.condition}): {self.block}"
+    
+class ClassDecl(AbstractSyntaxTree):
+    def __init__(self, name, methods) -> None:
+        self.name = name
+        self.methods = methods
+
+    def __repr__(self) -> str:
+        return f"class '{self.name}' ({len(self.methods)} methods)"
+
+class GetProp(AbstractSyntaxTree):
+    def __init__(self, object, name) -> None:
+        self.object = object
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"{self.object}.{self.name}"
+    
+class SetProp(AbstractSyntaxTree):
+    def __init__(self, object, name, value) -> None:
+        self.object = object
+        self.name = name
+        self.value = value
+
+class Self(AbstractSyntaxTree):
+    def __init__(self, keyword) -> None:
+        self.keyword = keyword
+
+class BuiltinList(AbstractSyntaxTree):
+    def __init__(self, items, name) -> None:
+        self.items = items
+        self.name = name
+
+    def __str__(self) -> str:
+        return f"{[i for i in self.items]}"

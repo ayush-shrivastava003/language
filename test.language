@@ -1,9 +1,4 @@
-fn is_num_2(n):
-    if ((n / 2) == 1):
-        return true;
-    fi;
-    return false;
-end;
-
-print is_num_2(0);
-print is_num_2(2);
+let x = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+print(x);
+print(x.length());
+print(x);

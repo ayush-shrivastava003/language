@@ -1,3 +1,4 @@
+from error import Error
 class Environment():
     def __init__(self, parent=None):
         self.parent = parent
@@ -16,8 +17,8 @@ class Environment():
         else:
              value = self.values.get(name)
 
-        if value is None:
-            raise Exception(f"Unkown name '{name}'")  
+        # if value is None:
+        #     raise Error(f"Unkown name '{name}'")  
         return value
 
     def ancestor(self, distance):

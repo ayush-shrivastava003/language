@@ -1,13 +1,14 @@
+# pyright: reportShadowedImports=none
 from lexer import *
 from syntax_tree import *
 from parser import Parser
 from semantic_analyzer import SemanticAnalyzer
 from environment import Environment
 from function_obj import *
-from call_stack import *
 from error import *
 import sys
 import readline # cursor navigation in python input
+import time
 
 _version = "0.1"
 
@@ -15,27 +16,34 @@ class Interpreter():
   def __init__(self):
     self.parser = Parser()
     self.semantic_analyzer = SemanticAnalyzer(self)
-    self.stack = CallStack()
     self.global_environment = Environment()
     self.environment = self.global_environment
     self.depths = {}
     self.is_shell = True
     self.filename = None
 
+    # add builtins to global scope
+    self.global_environment.assign("time", BuiltinFunction("time", time.time))
+
   def resolve(self, expr, depth):
     self.depths[expr] = depth
 
   def lookup(self, name, expr):
     distance = self.depths.get(expr)
-    # if distance is None:
-    #   raise Exception(f"Unkown name '{name}'")
-    return self.environment.get(name, distance=distance)
-
-  def define(self, name, value):
-    if self.environment:
-      self.environment.assign(name, value)
+    r = None
+    if distance is None:
+      r = self.global_environment.get(name.value)
     else:
-      self.global_environment.assign(name, value)
+      r = self.environment.get(name.value, distance=distance)
+    if r is None:
+      raise Error(f"Unkown name '{name.value}'.", name)
+    return r
+
+  # def define(self, name, value):
+  #   if self.environment:
+  #     self.environment.assign(name, value)
+  #   else:
+  #     self.global_environment.assign(name, value)
 
   def is_truthy(self, obj):
     if obj == None:
@@ -136,7 +144,7 @@ class Interpreter():
       return var_value
 
     elif type(node) == Variable:
-      return self.lookup(node.token.value, node)
+      return self.lookup(node.token, node)
 
     elif type(node) == Assign:
         var_name = node.name
@@ -149,15 +157,17 @@ class Interpreter():
         return var_value
 
     elif type(node) == FunctionCall:
-      function: Function = self.traverse(node.name)
-      if type(function) != Function:
-        raise Error(f"Only functions are callable.")
+      function = self.traverse(node.name)
+      if not isinstance(function, Callable):
+        if isinstance(node.name, GetProp):
+          raise Error(f"Only functions are callable", node.name.name.token)
+        raise Error(f"Only functions are callable.", node.name.token)
       args = []
       for arg in node.args:
         args.append(self.traverse(arg))
 
-      if len(args) != len(function.expr.args):
-        raise Exception(f"Wanted {len(function.expr.args)} argument(s), got {len(args)} instead.")
+      if len(args) != function.arity():
+        raise Error(f"Wanted {function.arity()} argument(s), got {len(args)} instead.", node.name.token)
       
       return function.call(self, args)
 
@@ -182,19 +192,59 @@ class Interpreter():
         self.traverse(node.block)
 
     elif type(node) == DeclareFunc:
-      function = Function(node)
+      function = Function(self.global_environment, node)
       self.environment.assign(node.name.token.value, function)
+    
+    elif type(node) == ClassDecl:
+      methods = {}
+      for method in node.methods:
+        function = Function(self, method)
+        methods[method.name.token.value] = function
+      clss = Class(node, methods)
+      self.environment.assign(node.name.token.value, clss)
 
+    elif type(node) == GetProp:
+      obj = self.traverse(node.object)
+
+      if isinstance(obj, Instance):
+        get = obj.get(node.name)
+        if get is not None:
+          return get
+        else:
+          raise Error(f"Unkown property '{node.name}'", node.name.token)
+      else:
+        # if isinstance(node.name, GetProp):
+          # raise Error("Only instances have properties", node.name.name.token)
+        raise Error("Only instances have properties.", node.name.token)
+    
+    elif type(node) == SetProp:
+      obj = self.traverse(node.object)
+      
+      if isinstance(obj, Instance):
+        val = self.traverse(node.value)
+        obj.set(node.name, val)
+        return obj
+      else:
+        raise Error("Only instances have fields.", node.name)
+      
+    elif type(node) == Self:
+      return self.lookup(node.keyword, node)
+    
+    elif type(node) == BuiltinList:
+      items = []
+      for item in node.items:
+        items.append(self.traverse(item))
+      return List(items, node).call(self, [])
+    else:
+      raise Exception(f"couldn't identify this: {node}")
+      
   def run(self, content):
     try:
       if self.parser.setup(content):
         tree = self.parser.parse()
         self.semantic_analyzer.resolve_block(tree)
 
-        # frame = StackFrame("PROGRAM", "PROGRAM", 1)
-        # self.stack.push(frame)
         self.traverse_block(tree, self.global_environment)
-        # self.stack.pull()
     
     except Error as e:
       print(f"\x1b[31mError at line {e.line}, column {e.column}")

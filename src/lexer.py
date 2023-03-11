@@ -1,5 +1,5 @@
 from enum import Enum
-from error import Error
+# from error import Error
 
 class TokenType(Enum):
   PLUS = "PLUS"
@@ -40,6 +40,11 @@ class TokenType(Enum):
   TERNARY = "TERNARY"
   INCREMENT = "INCEMENT"
   DECREMENT = "DECREMENT"
+  CLASS_DECL = "CLASS_DECL"
+  DOT = "."
+  SELF = "self"
+  LIST_OPEN = "LIST_OPEN"
+  LIST_CLOSE = "LIST_CLOSE"
 
 ops = {"+": TokenType.PLUS, "-": TokenType.MINUS, "*": TokenType.MULTIPLY, "/": TokenType.DIVIDE}
 
@@ -76,7 +81,9 @@ class Lexer():
         "for": (TokenType.FOR, "for"),
         "let": (TokenType.DECL, "let"),
         "true": (TokenType.BOOL, True),
-        "false": (TokenType.BOOL, False)
+        "false": (TokenType.BOOL, False),
+        "class": (TokenType.CLASS_DECL, "class"),
+        "self": (TokenType.SELF, "self")
       }
 
   def increment(self) -> None:
@@ -235,18 +242,28 @@ class Lexer():
           continue
         tokens.append(Token(TokenType.NOT, "!", line, column))
 
-      elif self.char == "\"":
+      elif self.char == "\"" or self.char == "'":
+        first_char = self.char
         self.increment()
         string = ""
-        while self.char != "\"":
+        while self.char != first_char:
           string += self.char
           self.increment()
-        tokens.append(Token(TokenType.STRING, string, line, column))
-      
+        l, c = self.line_and_column()
+        tokens.append(Token(TokenType.STRING, string, l, c))
 
+      elif self.char == "[":
+        tokens.append(Token(TokenType.LIST_OPEN, "[", line, column))
+
+      elif self.char == "]":
+        tokens.append(Token(TokenType.LIST_CLOSE, "]", line, column))
+
+      elif self.char == ".":
+        l, c = self.line_and_column()
+        tokens.append(Token(TokenType.DOT, ".", l, c))
+  
       else:
-        x = self.char.replace('\n', '\\n').replace('\t', '\\t')
-        print(f"\x1b[31munrecognized character '{x}' @ {line, column}\x1b[0m")
+        print(f"\x1b[31mUnrecognized character '{self.char}' at {line}:{column}\x1b[0m")
         return []
       
       # tokens[-1].line, tokens[-1].column = line, column

@@ -9,6 +9,11 @@ fn fib(n):
     return fib(n - 2) + fib(n - 1);
 end;
 
-for (let i = 0; i < 100; i++):
+let start = time();
+
+for (let i = 0; i < 30; i++):
     print fib(i);
 end;
+
+print "Total execution time:";
+print time() - start;
